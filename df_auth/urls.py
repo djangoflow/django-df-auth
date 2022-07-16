@@ -8,6 +8,8 @@ Add these to your root URLconf:
 
 """
 from django.urls import path
+from .views import DemoAPIView
 
 urlpatterns = [
+    path('demo/', DemoAPIView.as_view())
 ]

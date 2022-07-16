@@ -99,6 +99,9 @@ Other modules and links out there
 
 * https://github.com/python-social-auth/social-app-django
 * https://www.django-rest-framework.org/api-guide/schemas/
+* https://github.com/jazzband/django-oauth-toolkit
+* https://github.com/st4lk/django-rest-social-auth
+* https://github.com/pennersr/django-allauth
 
 Sponsors
 ========
