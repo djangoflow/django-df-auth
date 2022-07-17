@@ -3,7 +3,7 @@
 Add these to your root URLconf:
     urlpatterns = [
         ...
-        path('auth/', include('dfauth.urls'))
+        path('auth/', include('df_auth.urls'))
     ]
 
 """
@@ -11,5 +11,5 @@ from django.urls import path
 from .views import DemoAPIView
 
 urlpatterns = [
-    path('demo/', DemoAPIView.as_view())
+    path('demo/', DemoAPIView.as_view()),
 ]
