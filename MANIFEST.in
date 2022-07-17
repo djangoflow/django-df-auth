@@ -1,7 +1,7 @@
 include LICENSE
 include README.rst
-recursive-include dfauth/static *
-recursive-include dfauth/templates *
+recursive-include df_auth/static *
+recursive-include df_auth/templates *
 recursive-include docs *
 recursive-include tests *
 global-exclude __pycache__
