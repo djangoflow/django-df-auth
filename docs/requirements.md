@@ -1,0 +1,40 @@
+- as developer i want to be able to
+  - configure
+    - 2fa required for different user/application (i.e. rest app, django admin etc)
+    - configure which fields can be used for a user to identify themselves (email/phone/username)
+    e.g. `DF_AUTH_USER_IDENTITY_FIELDS` defaults to `email` or `username`
+    - a social app integration for
+      - facebook
+      - google 
+      - apple
+- as an unauthenticated user i want
+  - obtain jwt token
+    - with username|phone/email/password
+    - with username|phone/email/password/otp
+    - with username|phone/email/otp
+    - with social login flow
+      - facebook
+      - google
+      - apple
+  - request otp
+    - with username 
+    - username/password (2fa)
+  
+- as an authenticated (logged-in) user i want
+  - connect/disconnect my social account
+    - facebook
+    - google
+    - apple
+  - connect my phone number with otp
+  - ~~connect~~ replace my email with another one by using otp
+  - reset my password via single-use link (otp)
+    - email
+    - phone
+  
+- as new (an unregistered) user
+  - register myself with
+    - username/phone/email (`DF_AUTH_USER_IDENTITY_FIELDS`) combined with password and/or otp
+    - social app
+      - facebook
+      - google
+      - apple
