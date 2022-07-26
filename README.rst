@@ -27,7 +27,7 @@ Principles
 * **Clean code:** Strictly follow DRY principle; write your code for other developers
   to understand; document and keep documentation updated; automate testing your code,
   packaging, deployments and other processes; discuss your ideas before implementing unless
-  you are absolutely sure; be a good craftsmen. 
+  you are absolutely sure; be a good craftsmen.
 
 * **Open:** Offer source code and related artifacts under open source licenses. Build
   and manage a collaborative community where everyone is welcome.

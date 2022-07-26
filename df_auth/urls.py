@@ -8,14 +8,11 @@ Add these to your root URLconf:
 
 """
 from django.urls import path
-from .views import DemoAPIView
-from .viewsets import TokenViewSet
 from rest_framework.routers import DefaultRouter
 
-router = DefaultRouter()
-router.register('token', TokenViewSet)
+from .viewsets import TokenViewSet
 
-urlpatterns = [
-    path('demo/', DemoAPIView.as_view()),
-    path('', router.urls)
-]
+router = DefaultRouter()
+router.register("token", TokenViewSet)
+
+urlpatterns = [path("", router.urls)]
