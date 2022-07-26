@@ -7,12 +7,12 @@ Add these to your root URLconf:
     ]
 
 """
-from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .viewsets import TokenViewSet
+from df_auth.viewsets import SignInViewSet, TokenViewSet
 
 router = DefaultRouter()
-router.register("token", TokenViewSet)
+router.register("token", TokenViewSet, basename="token")
+router.register("signin", SignInViewSet, basename="signin")
 
-urlpatterns = [path("", router.urls)]
+urlpatterns = router.urls
