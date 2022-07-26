@@ -1,9 +1,5 @@
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.settings import import_string
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
 
 from ..serializers import TokenObtainSerializer
 
