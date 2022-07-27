@@ -1,6 +1,8 @@
-import rest_framework_simplejwt.settings
 from rest_framework import serializers
 from rest_framework.settings import import_string
+
+import rest_framework_simplejwt.settings
+
 
 # from rest_framework_simplejwt.views import *
 
