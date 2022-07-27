@@ -1,12 +1,10 @@
 from django.conf import settings
+from rest_framework.settings import APISettings
 
-#
-# DEFAULTS = {
-#     # Base API policies
-#     'USER_IDENTITY_FIELDS': [
-#         'email',
-#     ],
-# }
+DEFAULTS = {
+    "USER_IDENTITY_FIELDS": ("email",),
+    "PASSWORD_REQUIRED": False,
+    "OTP_REQUIRED": False,
+}
 
-APP_SETTINGS = settings.get("DF_AUTH")
-USER_IDENTITY_FIELDS = APP_SETTINGS["USER_IDENTITY_FIELDS"]
+api_settings = APISettings(getattr(settings, "DF_AUTH", {}), DEFAULTS)

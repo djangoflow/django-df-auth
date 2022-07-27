@@ -9,10 +9,9 @@ Add these to your root URLconf:
 """
 from rest_framework.routers import DefaultRouter
 
-from df_auth.viewsets import SignInViewSet, TokenViewSet
+from df_auth.viewsets import TokenViewSet
 
 router = DefaultRouter()
 router.register("token", TokenViewSet, basename="token")
-router.register("signin", SignInViewSet, basename="signin")
 
 urlpatterns = router.urls

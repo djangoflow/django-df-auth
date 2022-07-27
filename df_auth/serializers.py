@@ -2,6 +2,8 @@ import rest_framework_simplejwt.settings
 from rest_framework import serializers
 from rest_framework.settings import import_string
 
+# from rest_framework_simplejwt.views import *
+
 
 class OTPField(serializers.CharField):
     pass
