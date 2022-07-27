@@ -7,6 +7,7 @@ from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
 
 
 class TokenObtainSerializer(serializers.Serializer):
+    user = None
     token = serializers.CharField(read_only=True)
     token_class = simplejwt_settings.AUTH_TOKEN_CLASSES[0]
 
