@@ -7,7 +7,8 @@ DEFAULTS = {
     "REQUIRED_AUTH_FIELDS": (),
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": None,
-    "EMAIL_CONFIRMATION_FIELD": "is_email_confirmed",
+    "EMAIL_CONFIRMED_FIELD": "email_confirmed",
+    "OTP_EMAIL_UPDATE": True,
 }
 
 IMPORT_STRINGS = []

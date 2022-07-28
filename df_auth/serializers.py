@@ -1,11 +1,15 @@
 from .settings import api_settings
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
 from django.utils.module_loading import import_string
 from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
+
+
+User = get_user_model()
 
 
 class AbstractIdentitySerializer(serializers.Serializer):
@@ -16,6 +20,9 @@ class AbstractIdentitySerializer(serializers.Serializer):
             f: serializers.CharField(write_only=True, required=False)
             for f in api_settings.USER_IDENTITY_FIELDS
         }
+
+    def validate_email(self, value):
+        return User.objects.normalize_email(value)
 
     def validate(self, attrs):
         """
