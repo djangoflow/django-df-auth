@@ -4,8 +4,12 @@ from rest_framework.settings import APISettings
 
 DEFAULTS = {
     "USER_IDENTITY_FIELDS": ("email",),
-    "REQUIRED_AUTH_FIELDS": None,
+    "REQUIRED_AUTH_FIELDS": (),
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
+    "TEST_USER_EMAIL": None,
+    "EMAIL_CONFIRMATION_FIELD": "is_email_confirmed",
 }
 
-api_settings = APISettings(getattr(settings, "DF_AUTH", {}), DEFAULTS)
+IMPORT_STRINGS = []
+
+api_settings = APISettings(getattr(settings, "DF_AUTH", IMPORT_STRINGS), DEFAULTS)
