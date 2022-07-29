@@ -9,7 +9,8 @@ Add these to your root URLconf:
 """
 from .viewsets import OTPViewSet
 from .viewsets import TokenViewSet
-from .viewsets import SignIn, Connect
+from .viewsets import SignIn, Connect, CallBack
+from django.contrib import admin
 from django.urls import include
 from django.urls import path
 from rest_framework.routers import DefaultRouter
@@ -19,7 +20,12 @@ router = DefaultRouter()
 router.register("token", TokenViewSet, basename="token")
 router.register("otp", OTPViewSet, basename="otp")
 
-urlpatterns = [path("social/", include("social_django.urls", namespace="social"))]
-urlpatterns = [path("social/signin/<str:social>/", SignIn.as_view(), name='sign-in')]
-urlpatterns = [path("social/connect/<str:social>/", Connect.as_view(), name='connect')]
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path("social/", include("social_django.urls", namespace="social")),
+    path("social/signin/<str:social>/", SignIn.as_view(), name='sign-in'),
+    path("social/connect/<str:social>/", Connect.as_view(), name='connect'),
+    path('api/login/', include('rest_social_auth.urls_token')),
+    path('api/auth/social/callback/', CallBack.as_view(), name='call-back'),
+]
 urlpatterns += router.urls

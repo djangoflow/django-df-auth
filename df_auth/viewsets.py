@@ -59,7 +59,6 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
 
 class SignIn(APIView):
     permission_classes = []
-
     def post(self, request, social):
         if social == GOOGLE:
             return response.Response({})
@@ -67,7 +66,12 @@ class SignIn(APIView):
 
 class Connect(APIView):
     permission_classes = []
-
     def post(self, request, social):
         if social == GOOGLE:
             return response.Response({})
+
+
+class CallBack(APIView):
+    permission_classes = []
+    def get(self, request):
+        return response.Response({'code': request.GET['code']})

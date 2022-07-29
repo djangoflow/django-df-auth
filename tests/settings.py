@@ -9,8 +9,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'rest_framework',
+    'rest_framework.authtoken',
 
     'social_django',
+    'rest_social_auth',
 ]
 
 MIDDLEWARE = [
@@ -47,5 +50,28 @@ SOCIAL_AUTH_JSONFIELD_ENABLED = True
 
 AUTHENTICATION_BACKENDS = (
     'social_core.backends.google.GoogleOAuth2',
+    'social_core.backends.facebook.FacebookOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'apex_db.sqlite3',
+    }
+}
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '150035990900-7moqv8je1epjt3hd107dr3v6vp56cn5b.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
+
+SOCIAL_AUTH_FACEBOOK_KEY = '623807988780280'
+SOCIAL_AUTH_FACEBOOK_SECRET = '220059b1c1757ba3c3df7ab2c58cd061'
+SOCIAL_AUTH_FACEBOOK_EXTRA_DATA = [
+    ('name', 'name'),
+    ('email', 'email'),
+    ('picture', 'picture'),
+    ('link', 'profile_url'),
+]
+
+REST_SOCIAL_OAUTH_REDIRECT_URI = '/api/auth/social/callback/'
+SITE_ID=1
