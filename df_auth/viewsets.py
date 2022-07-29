@@ -5,9 +5,12 @@ from rest_framework import permissions
 from rest_framework import response
 from rest_framework import status
 from rest_framework import viewsets
+from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
+
+GOOGLE = 'google'
 
 
 class ValidationOnlyCreateViewSet(viewsets.GenericViewSet):
@@ -52,3 +55,19 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
 class OTPViewSet(ValidationOnlyCreateViewSet):
     serializer_class = OTPObtainSerializer
     permission_classes = (permissions.AllowAny,)
+
+
+class SignIn(APIView):
+    permission_classes = []
+
+    def post(self, request, social):
+        if social == GOOGLE:
+            return response.Response({})
+
+
+class Connect(APIView):
+    permission_classes = []
+
+    def post(self, request, social):
+        if social == GOOGLE:
+            return response.Response({})
