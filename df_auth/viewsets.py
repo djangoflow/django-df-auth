@@ -94,7 +94,7 @@ class SignIn(GenericAPIView):
 
     def get_object(self):
         user = self.request.user
-        manual_redirect_uri = self.request.auth_data.pop('redirect_uri', None)
+        manual_redirect_uri = self.request.data.pop('redirect_uri', None)
         manual_redirect_uri = self.get_redirect_uri(manual_redirect_uri)
         if manual_redirect_uri:
             self.request.backend.redirect_uri = manual_redirect_uri
