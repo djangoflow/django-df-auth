@@ -105,8 +105,6 @@ class Connect(SignIn):
         return super().post(request, provider)
 
 
-
 class CallBack(APIView):
-    permission_classes = []
     def get(self, request):
         return response.Response({'code': request.GET['code']})

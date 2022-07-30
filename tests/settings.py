@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 from django.utils.timezone import timedelta
 load_dotenv()
 
-DEBUG = True
-SECRET_KEY = "secret_key"
+DEBUG = os.getenv("DEBUG")
+SECRET_KEY = os.getenv("SECRET_KEY")
 ROOT_URLCONF = 'df_auth.urls'
 INSTALLED_APPS = [
     'django.contrib.admin',
