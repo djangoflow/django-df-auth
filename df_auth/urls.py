@@ -23,9 +23,9 @@ router.register("otp", OTPViewSet, basename="otp")
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("social/", include("social_django.urls", namespace="social")),
+    path('api/login/', include('rest_social_auth.urls_token')),
     path("social/signin/<str:social>/", SignIn.as_view(), name='sign-in'),
     path("social/connect/<str:social>/", Connect.as_view(), name='connect'),
-    path('api/login/', include('rest_social_auth.urls_token')),
     path('api/auth/social/callback/', CallBack.as_view(), name='call-back'),
 ]
 urlpatterns += router.urls

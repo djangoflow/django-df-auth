@@ -66,12 +66,9 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
 
 SOCIAL_AUTH_FACEBOOK_KEY = '623807988780280'
 SOCIAL_AUTH_FACEBOOK_SECRET = '220059b1c1757ba3c3df7ab2c58cd061'
-SOCIAL_AUTH_FACEBOOK_EXTRA_DATA = [
-    ('name', 'name'),
-    ('email', 'email'),
-    ('picture', 'picture'),
-    ('link', 'profile_url'),
-]
-
+SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
+SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
+    'fields': 'id,name,email', 
+}
 REST_SOCIAL_OAUTH_REDIRECT_URI = '/api/auth/social/callback/'
 SITE_ID=1
