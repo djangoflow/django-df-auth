@@ -83,13 +83,8 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
 
 class SignIn(GenericAPIView):
     permission_classes = []
-    oauth2_serializer_class_in = OAuth2InputSerializer
     serializer_class = TokenSerializer
     authentication_classes = (TokenAuthentication, )
-
-    def get_serializer_in(self, *args, **kwargs):
-        kwargs['context'] = self.get_serializer_context()
-        return OAuth2InputSerializer(*args, **kwargs)
 
     def get_redirect_uri(self, manual_redirect_uri):
         if not manual_redirect_uri:
@@ -112,8 +107,7 @@ class SignIn(GenericAPIView):
     def post(self, request, provider):
         request.auth_data = self.request.data
         decorate_request(request, provider)
-        serializer_in = self.get_serializer_in(data=self.request.data)
-        serializer_in.is_valid(raise_exception=True)
+        OAuth2InputSerializer(data=self.request.data).is_valid(raise_exception=True)
         try:
             user = self.get_object()
         except (AuthException, HTTPError) as e:
