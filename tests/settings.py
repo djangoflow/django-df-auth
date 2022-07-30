@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from django.utils.timezone import timedelta
 load_dotenv()
 
 DEBUG = True
@@ -83,3 +84,19 @@ SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
 REST_SOCIAL_OAUTH_REDIRECT_URI = os.getenv("REST_SOCIAL_OAUTH_REDIRECT_URI")
 REST_SOCIAL_OAUTH_REDIRECT = os.getenv("REST_SOCIAL_OAUTH_REDIRECT")
 SITE_ID=1
+
+
+SOCIAL_AUTH_PIPELINE =(
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)
+
+SIMPLE_JWT = {"ACCESS_TOKEN_LIFETIME": timedelta(days=7)}
