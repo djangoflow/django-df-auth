@@ -71,4 +71,5 @@ SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
     'fields': 'id,name,email', 
 }
 REST_SOCIAL_OAUTH_REDIRECT_URI = '/api/auth/social/callback/'
+REST_SOCIAL_OAUTH_REDIRECT = "http://localhost:8000/api/auth/social/callback/"
 SITE_ID=1

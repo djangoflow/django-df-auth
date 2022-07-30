@@ -86,18 +86,9 @@ class SignIn(GenericAPIView):
     serializer_class = TokenSerializer
     authentication_classes = (TokenAuthentication, )
 
-    def get_redirect_uri(self, manual_redirect_uri):
-        if not manual_redirect_uri:
-            manual_redirect_uri = getattr(
-                settings, 'REST_SOCIAL_OAUTH_ABSOLUTE_REDIRECT_URI', None)
-        return manual_redirect_uri
-
     def get_object(self):
         user = self.request.user
-        manual_redirect_uri = self.request.data.pop('redirect_uri', None)
-        manual_redirect_uri = self.get_redirect_uri(manual_redirect_uri)
-        if manual_redirect_uri:
-            self.request.backend.redirect_uri = manual_redirect_uri
+        self.request.backend.redirect_uri = settings.REST_SOCIAL_OAUTH_REDIRECT
         is_authenticated = user_is_authenticated(user)
         user = is_authenticated and user or None
         self.request.backend.STATE_PARAMETER = False
