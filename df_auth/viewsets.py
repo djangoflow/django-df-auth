@@ -20,16 +20,14 @@ from social_django.utils import psa, STORAGE
 from requests.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
-
 GOOGLE = 'google-oauth2'
-REDIRECT_URI = getattr(settings, 'REST_SOCIAL_OAUTH_REDIRECT_URI', '/')
 
 
 def load_strategy(request=None):
     return get_strategy("df_auth.strategy.DRFStrategy", STORAGE, request)
 
 
-@psa(REDIRECT_URI, load_strategy=load_strategy)
+@psa(settings.REST_SOCIAL_OAUTH_REDIRECT_URI, load_strategy=load_strategy)
 def decorate_request(request, backend):
     pass
 
