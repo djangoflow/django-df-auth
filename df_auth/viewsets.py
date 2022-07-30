@@ -82,9 +82,7 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
 
 
 class SignIn(GenericAPIView):
-    permission_classes = []
     serializer_class = TokenSerializer
-    authentication_classes = (TokenAuthentication, )
 
     def get_object(self):
         user = self.request.user
