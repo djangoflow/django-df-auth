@@ -7,6 +7,7 @@ from django.conf import settings
 from rest_framework import permissions
 from rest_framework import response
 from rest_framework import status
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.decorators import action
@@ -82,8 +83,7 @@ class SignIn(GenericAPIView):
     def get_object(self):
         user = self.request.user
         self.request.backend.redirect_uri = settings.REST_SOCIAL_OAUTH_REDIRECT
-        is_authenticated = user_is_authenticated(user)
-        user = is_authenticated and user or None
+        user = user_is_authenticated(user) and user or None
         self.request.backend.STATE_PARAMETER = False
         user = self.request.backend.complete(user=user)
         return user
@@ -95,16 +95,17 @@ class SignIn(GenericAPIView):
             user = self.get_object()
         except (AuthException, HTTPError) as e:
             logger.error(e)
-            return response.Response("something wrong happened", status=status.HTTP_400_BAD_REQUEST)
+            return response.Response("something wrong happened", status.HTTP_400_BAD_REQUEST)
         resp_data = self.get_serializer(instance=user)
         return response.Response(resp_data.data)
 
 
-class Connect(APIView):
-    permission_classes = []
-    def post(self, request, social):
-        if social == GOOGLE:
-            return response.Response({})
+class Connect(SignIn):
+    def post(self, request, provider):
+        if not request.user.is_authenticated:
+            raise NotAuthenticated()
+        return super().post(request, provider)
+
 
 
 class CallBack(APIView):
