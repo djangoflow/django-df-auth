@@ -1,8 +1,9 @@
+import logging
 from .serializers import OTPObtainSerializer
 from .serializers import TokenObtainSerializer
 from .serializers import OAuth2InputSerializer
 from .serializers import JWTPairSerializer
-import logging
+
 from django.conf import settings
 from rest_framework import permissions
 from rest_framework import response
@@ -21,12 +22,9 @@ from social_django.utils import psa, STORAGE
 from requests.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
-GOOGLE = 'google-oauth2'
-
 
 def load_strategy(request=None):
     return get_strategy("df_auth.strategy.DRFStrategy", STORAGE, request)
-
 
 @psa(settings.REST_SOCIAL_OAUTH_REDIRECT_URI, load_strategy=load_strategy)
 def decorate_request(request, backend):
