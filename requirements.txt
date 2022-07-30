@@ -1,5 +1,6 @@
 Django>=4
+djangorestframework-simplejwt
 djangorestframework>=3
 pytest-django>=4.5
+python-dotenv
 social-auth-app-django
-djangorestframework-simplejwt
