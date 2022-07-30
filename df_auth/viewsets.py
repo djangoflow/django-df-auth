@@ -89,19 +89,6 @@ class SignIn(GenericAPIView):
     serializer_class = TokenSerializer
     authentication_classes = (TokenAuthentication, )
 
-    def get_serializer_in_data(self):
-        """
-        Compile the incoming data into a form fit for the serializer_in class.
-        :return: Data for serializer in the form of a dictionary with 'provider' and 'code' keys.
-        """
-        return self.request.data.copy()
-
-    def set_input_data(self, request, auth_data):
-        """
-        auth_data will be used used as request_data in strategy
-        """
-        request.auth_data = auth_data
-
     def get_serializer_in(self, *args, **kwargs):
         kwargs['context'] = self.get_serializer_context()
         return OAuth2InputSerializer(*args, **kwargs)
@@ -126,10 +113,9 @@ class SignIn(GenericAPIView):
 
     @method_decorator(never_cache)
     def post(self, request, provider):
-        input_data = self.get_serializer_in_data()
-        self.set_input_data(request, input_data)
+        request.auth_data = self.request.data
         decorate_request(request, provider)
-        serializer_in = self.get_serializer_in(data=input_data)
+        serializer_in = self.get_serializer_in(data=self.request.data)
         serializer_in.is_valid(raise_exception=True)
         try:
             user = self.get_object()
