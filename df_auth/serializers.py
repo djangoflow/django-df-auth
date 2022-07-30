@@ -8,6 +8,7 @@ from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 User = get_user_model()
@@ -105,5 +106,18 @@ class TokenSerializer(serializers.Serializer):
     token = serializers.SerializerMethodField()
 
     def get_token(self, obj):
-        token, created = Token.objects.get_or_create(user=obj)
+        token, _ = Token.objects.get_or_create(user=obj)
         return token.key
+
+
+class JWTPairSerializer(serializers.Serializer):
+    token = serializers.SerializerMethodField()
+    refresh = serializers.SerializerMethodField()
+
+    def get_token(self, obj):
+        user = self.instance
+        return str(RefreshToken.for_user(user).access_token)
+
+    def get_refresh(self, obj):
+        user = self.instance
+        return str(RefreshToken.for_user(user))

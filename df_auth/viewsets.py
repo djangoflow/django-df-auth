@@ -1,7 +1,7 @@
 from .serializers import OTPObtainSerializer
 from .serializers import TokenObtainSerializer
 from .serializers import OAuth2InputSerializer
-from .serializers import TokenSerializer
+from .serializers import JWTPairSerializer
 import logging
 from django.conf import settings
 from rest_framework import permissions
@@ -81,7 +81,7 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
 
 
 class SignIn(GenericAPIView):
-    serializer_class = TokenSerializer
+    serializer_class = JWTPairSerializer
 
     def get_object(self):
         user = self.request.user
