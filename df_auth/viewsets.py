@@ -95,7 +95,7 @@ class SignIn(GenericAPIView):
             user = self.get_object()
         except (AuthException, HTTPError) as e:
             logger.error(e)
-            return response.Response(data="something wrong happened", status=status.HTTP_400_BAD_REQUEST)
+            return response.Response("something wrong happened", status=status.HTTP_400_BAD_REQUEST)
         resp_data = self.get_serializer(instance=user)
         return response.Response(resp_data.data)
 
