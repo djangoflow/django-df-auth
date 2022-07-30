@@ -12,7 +12,6 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
 from rest_framework.generics import GenericAPIView
-from rest_framework.authentication import TokenAuthentication
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
 
 from social_core.utils import get_strategy, user_is_authenticated, setting_name
