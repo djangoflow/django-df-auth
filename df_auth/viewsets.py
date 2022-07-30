@@ -4,8 +4,6 @@ from .serializers import OAuth2InputSerializer
 from .serializers import TokenSerializer
 import logging
 from django.conf import settings
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
 from rest_framework import permissions
 from rest_framework import response
 from rest_framework import status
@@ -111,7 +109,6 @@ class SignIn(GenericAPIView):
         user = self.request.backend.complete(user=user)
         return user
 
-    @method_decorator(never_cache)
     def post(self, request, provider):
         request.auth_data = self.request.data
         decorate_request(request, provider)
