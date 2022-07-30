@@ -1,6 +1,11 @@
 from .serializers import OTPObtainSerializer
 from .serializers import TokenObtainSerializer
+from .serializers import OAuth2InputSerializer
+from .serializers import TokenSerializer
+import logging
 from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from rest_framework import permissions
 from rest_framework import response
 from rest_framework import status
@@ -8,9 +13,30 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
+from rest_framework.generics import GenericAPIView
+from rest_framework.authentication import TokenAuthentication
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
 
-GOOGLE = 'google'
+from social_core.utils import get_strategy, user_is_authenticated, setting_name
+from social_core.exceptions import AuthException
+from social_django.utils import psa, STORAGE
+from requests.exceptions import HTTPError
+
+logger = logging.getLogger(__name__)
+
+GOOGLE = 'google-oauth2'
+REDIRECT_URI = getattr(settings, 'REST_SOCIAL_OAUTH_REDIRECT_URI', '/')
+DOMAIN_FROM_ORIGIN = getattr(settings, 'REST_SOCIAL_DOMAIN_FROM_ORIGIN', True)
+STRATEGY = getattr(settings, setting_name('STRATEGY'), 'rest_social_auth.strategy.DRFStrategy')
+
+
+def load_strategy(request=None):
+    return get_strategy(STRATEGY, STORAGE, request)
+
+
+@psa(REDIRECT_URI, load_strategy=load_strategy)
+def decorate_request(request, backend):
+    pass
 
 
 class ValidationOnlyCreateViewSet(viewsets.GenericViewSet):
@@ -57,11 +83,61 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
     permission_classes = (permissions.AllowAny,)
 
 
-class SignIn(APIView):
+class SignIn(GenericAPIView):
     permission_classes = []
-    def post(self, request, social):
-        if social == GOOGLE:
-            return response.Response({})
+    oauth2_serializer_class_in = OAuth2InputSerializer
+    serializer_class = TokenSerializer
+    authentication_classes = (TokenAuthentication, )
+
+    def get_serializer_in_data(self):
+        """
+        Compile the incoming data into a form fit for the serializer_in class.
+        :return: Data for serializer in the form of a dictionary with 'provider' and 'code' keys.
+        """
+        return self.request.data.copy()
+
+    def set_input_data(self, request, auth_data):
+        """
+        auth_data will be used used as request_data in strategy
+        """
+        request.auth_data = auth_data
+
+    def get_serializer_in(self, *args, **kwargs):
+        kwargs['context'] = self.get_serializer_context()
+        return OAuth2InputSerializer(*args, **kwargs)
+
+    def get_redirect_uri(self, manual_redirect_uri):
+        if not manual_redirect_uri:
+            manual_redirect_uri = getattr(
+                settings, 'REST_SOCIAL_OAUTH_ABSOLUTE_REDIRECT_URI', None)
+        return manual_redirect_uri
+
+    def get_object(self):
+        user = self.request.user
+        manual_redirect_uri = self.request.auth_data.pop('redirect_uri', None)
+        manual_redirect_uri = self.get_redirect_uri(manual_redirect_uri)
+        if manual_redirect_uri:
+            self.request.backend.redirect_uri = manual_redirect_uri
+        is_authenticated = user_is_authenticated(user)
+        user = is_authenticated and user or None
+        self.request.backend.STATE_PARAMETER = False
+        user = self.request.backend.complete(user=user)
+        return user
+
+    @method_decorator(never_cache)
+    def post(self, request, provider):
+        input_data = self.get_serializer_in_data()
+        self.set_input_data(request, input_data)
+        decorate_request(request, provider)
+        serializer_in = self.get_serializer_in(data=input_data)
+        serializer_in.is_valid(raise_exception=True)
+        try:
+            user = self.get_object()
+        except (AuthException, HTTPError) as e:
+            logger.error(e)
+            return response.Response(data="something wrong happened", status=status.HTTP_400_BAD_REQUEST)
+        resp_data = self.get_serializer(instance=user)
+        return response.Response(resp_data.data)
 
 
 class Connect(APIView):

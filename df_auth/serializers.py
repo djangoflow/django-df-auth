@@ -6,6 +6,7 @@ from django.contrib.auth.models import update_last_login
 from django.utils.module_loading import import_string
 from rest_framework import exceptions
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
 
 
@@ -92,3 +93,17 @@ class OTPObtainSerializer(AbstractIdentitySerializer):
                 backend_module().generate_challenge(**attrs, **self.context)
 
         return attrs
+
+
+class OAuth2InputSerializer(serializers.Serializer):
+    provider = serializers.CharField(required=False)
+    code = serializers.CharField()
+    redirect_uri = serializers.CharField(required=False)
+
+
+class TokenSerializer(serializers.Serializer):
+    token = serializers.SerializerMethodField()
+
+    def get_token(self, obj):
+        token, created = Token.objects.get_or_create(user=obj)
+        return token.key
