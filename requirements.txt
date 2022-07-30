@@ -1,6 +1,5 @@
-Django<4
+Django>=4
 djangorestframework>=3
 pytest-django>=4.5
 social-auth-app-django
 djangorestframework-simplejwt
-rest-social-auth

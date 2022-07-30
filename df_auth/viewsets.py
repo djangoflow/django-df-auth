@@ -14,7 +14,7 @@ from rest_framework.settings import import_string
 from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
 
-from social_core.utils import get_strategy, user_is_authenticated, setting_name
+from social_core.utils import get_strategy, user_is_authenticated
 from social_core.exceptions import AuthException
 from social_django.utils import psa, STORAGE
 from requests.exceptions import HTTPError
@@ -23,12 +23,10 @@ logger = logging.getLogger(__name__)
 
 GOOGLE = 'google-oauth2'
 REDIRECT_URI = getattr(settings, 'REST_SOCIAL_OAUTH_REDIRECT_URI', '/')
-DOMAIN_FROM_ORIGIN = getattr(settings, 'REST_SOCIAL_DOMAIN_FROM_ORIGIN', True)
-STRATEGY = getattr(settings, setting_name('STRATEGY'), 'rest_social_auth.strategy.DRFStrategy')
 
 
 def load_strategy(request=None):
-    return get_strategy(STRATEGY, STORAGE, request)
+    return get_strategy("df_auth.strategy.DRFStrategy", STORAGE, request)
 
 
 @psa(REDIRECT_URI, load_strategy=load_strategy)
@@ -93,7 +91,6 @@ class SignIn(GenericAPIView):
         return user
 
     def post(self, request, provider):
-        request.auth_data = self.request.data
         decorate_request(request, provider)
         OAuth2InputSerializer(data=self.request.data).is_valid(raise_exception=True)
         try:
