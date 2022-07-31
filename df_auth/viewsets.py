@@ -57,15 +57,9 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
     permission_classes = (permissions.AllowAny,)
 
 
-class SocialAuth(viewsets.GenericViewSet):
+class SocialTokenViewSet(ValidationOnlyCreateViewSet):
     serializer_class = SocialTokenObtainSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(
-            data=request.data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        return response.Response(serializer.data, status=status.HTTP_200_OK)
+    permission_classes = (permissions.AllowAny,)
 
     @action(methods=["post"], detail=False)
     def signin(self, request, *args, **kwargs):

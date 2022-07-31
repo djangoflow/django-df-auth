@@ -8,7 +8,7 @@ Add these to your root URLconf:
 
 """
 from .viewsets import OTPViewSet
-from .viewsets import SocialAuth
+from .viewsets import SocialTokenViewSet
 from .viewsets import TokenViewSet
 from django.contrib import admin
 from django.urls import include
@@ -19,7 +19,7 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register("token", TokenViewSet, basename="token")
 router.register("otp", OTPViewSet, basename="otp")
-router.register("social", SocialAuth, basename="social-auth")
+router.register("social", SocialTokenViewSet, basename="social-auth")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
