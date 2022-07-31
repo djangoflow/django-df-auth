@@ -97,4 +97,3 @@ class OTPObtainSerializer(AbstractIdentitySerializer):
 class OAuth2InputSerializer(serializers.Serializer):
     provider = serializers.CharField(required=False)
     code = serializers.CharField()
-    redirect_uri = serializers.CharField(required=False)

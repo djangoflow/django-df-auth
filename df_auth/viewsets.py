@@ -75,7 +75,7 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
 
 
 class SignIn(GenericAPIView):
-    serializer_class = TokenObtainSerializer
+    serializer_class = OAuth2InputSerializer
 
     def get_object(self):
         user = self.request.user
@@ -87,13 +87,13 @@ class SignIn(GenericAPIView):
 
     def post(self, request, provider):
         decorate_request(request, provider)
-        OAuth2InputSerializer(data=self.request.data).is_valid(raise_exception=True)
+        self.get_serializer(data=self.request.data).is_valid(raise_exception=True)
         try:
             user = self.get_object()
         except (AuthException, HTTPError) as e:
             logger.error(e)
             return response.Response("something wrong happened", status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(data={})
+        serializer = TokenObtainSerializer(data={})
         serializer.user = user
         serializer.is_valid(raise_exception=True)
         return response.Response(serializer.data)
