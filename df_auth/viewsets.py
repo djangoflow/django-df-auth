@@ -1,7 +1,7 @@
 import logging
 from .serializers import OTPObtainSerializer
 from .serializers import TokenObtainSerializer
-from .serializers import SocialAuthInputSerializer
+from .serializers import SocialAuthInputSerializer, SocialCallBackSerializer
 from rest_framework.permissions import IsAuthenticated
 
 from django.conf import settings
@@ -98,14 +98,10 @@ class SocialAuth(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         return response.Response(serializer.data)
 
-    @action(
-        methods=["post"],
-        detail=False,
-        permission_classes=[IsAuthenticated]
-    )
+    @action(methods=["post"], detail=False, permission_classes=[IsAuthenticated])
     def connect(self, request):
         return self.signin(request)
     
-    @action(methods=["get"], detail=False)
+    @action(methods=["get"], detail=False, serializer_class=SocialCallBackSerializer)
     def callback(self, request):
         return response.Response({'code': request.GET['code']})

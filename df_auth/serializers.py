@@ -101,4 +101,4 @@ class SocialAuthInputSerializer(serializers.Serializer):
 
 
 class SocialCallBackSerializer(serializers.Serializer):
-    code = serializers.CharField()
+    code = serializers.CharField(read_only=True)
