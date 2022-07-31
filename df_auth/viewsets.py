@@ -1,5 +1,6 @@
 from .serializers import OTPObtainSerializer
 from .serializers import SocialCallBackSerializer
+from .serializers import SocialConnectSerializer
 from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
 from django.conf import settings
@@ -65,7 +66,12 @@ class SocialTokenViewSet(ValidationOnlyCreateViewSet):
     def signin(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
-    @action(methods=["post"], detail=False, permission_classes=[IsAuthenticated])
+    @action(
+        methods=["post"],
+        detail=False,
+        permission_classes=[IsAuthenticated],
+        serializer_class=SocialConnectSerializer,
+    )
     def connect(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 

@@ -1,5 +1,5 @@
 from .settings import api_settings
-from .social_auth import decorate_request
+from .social_auth import authenticate_or_connect
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
@@ -41,7 +41,10 @@ class AbstractTokenSerializer(serializers.Serializer):
 
     @classmethod
     def get_token(cls, user):
-        return cls.token_class.for_user(user)
+        token = cls.token_class.for_user(user)
+        if simplejwt_settings.UPDATE_LAST_LOGIN:
+            update_last_login(None, user)
+        return token
 
 
 class TokenObtainSerializer(AbstractTokenSerializer, AbstractIdentitySerializer):
@@ -52,13 +55,7 @@ class TokenObtainSerializer(AbstractTokenSerializer, AbstractIdentitySerializer)
         if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
             raise exceptions.AuthenticationFailed()
 
-        token = self.get_token(self.user)
-
-        attrs["token"] = str(token)
-
-        if simplejwt_settings.UPDATE_LAST_LOGIN:
-            update_last_login(None, self.user)
-
+        attrs["token"] = str(self.get_token(self.user))
         return attrs
 
     def get_fields(self):
@@ -111,16 +108,23 @@ class SocialTokenObtainSerializer(
 ):
     def validate(self, attrs):
         request = self.context["request"]
-        user = request.user
-        user = user if user.is_authenticated else None
-        decorate_request(request, attrs["provider"])
-        self.user = request.backend.complete(user=user)
+        self.user = authenticate_or_connect(request, attrs, None)
         if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
             raise exceptions.AuthenticationFailed()
-        token = self.get_token(self.user)
-        attrs["token"] = str(token)
-        if simplejwt_settings.UPDATE_LAST_LOGIN:
-            update_last_login(None, self.user)
+        attrs["token"] = str(self.get_token(self.user))
+        return attrs
+
+
+class SocialConnectSerializer(
+    AbstractTokenSerializer, AbstractSocialIdentitySerializer
+):
+    def validate(self, attrs):
+        request = self.context["request"]
+        self.user = request.user
+        authenticate_or_connect(request, attrs, self.user)
+        if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
+            raise exceptions.AuthenticationFailed()
+        attrs["token"] = str(self.get_token(self.user))
         return attrs
 
 

@@ -22,3 +22,8 @@ def load_strategy(request=None):
 def decorate_request(request, backend):
     request.backend.STATE_PARAMETER = False
     request.backend.redirect_uri = settings.REST_SOCIAL_OAUTH_REDIRECT
+
+
+def authenticate_or_connect(request, attrs, user):
+    decorate_request(request, attrs["provider"])
+    return request.backend.complete(user=user)
