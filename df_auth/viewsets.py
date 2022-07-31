@@ -79,8 +79,7 @@ class SocialAuth(viewsets.GenericViewSet):
     def get_object(self):
         user = self.request.user
         user = user if user.is_authenticated else None
-        user = self.request.backend.complete(user=user)
-        return user
+        return self.request.backend.complete(user=user)
 
     @action(methods=["post"], detail=False)
     def signin(self, request):
