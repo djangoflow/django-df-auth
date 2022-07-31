@@ -6,9 +6,9 @@ from social_django.utils import STORAGE
 
 
 class DRFStrategy(DjangoStrategy):
-    def __init__(self, storage, request=None, tpl=None):
+    def __init__(self, storage, request):
         self.request = request
-        super(DjangoStrategy, self).__init__(storage, tpl)
+        super().__init__(storage, request)
 
     def request_data(self):
         return self.request.data

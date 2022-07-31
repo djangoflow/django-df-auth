@@ -22,7 +22,7 @@ router.register("otp", OTPViewSet, basename="otp")
 router.register("social", SocialAuth, basename="social-auth")
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
     path("social/", include("social_django.urls", namespace="social")),
 ]
 urlpatterns += router.urls
