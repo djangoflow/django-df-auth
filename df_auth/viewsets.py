@@ -1,18 +1,16 @@
 import logging
 from .serializers import OTPObtainSerializer
 from .serializers import TokenObtainSerializer
-from .serializers import OAuth2InputSerializer
+from .serializers import SocialAuthInputSerializer
+from rest_framework.permissions import IsAuthenticated
 
 from django.conf import settings
 from rest_framework import permissions
 from rest_framework import response
 from rest_framework import status
-from rest_framework.exceptions import NotAuthenticated
 from rest_framework import viewsets
-from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
-from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
 
 from social_core.utils import get_strategy, user_is_authenticated
@@ -74,8 +72,8 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
     permission_classes = (permissions.AllowAny,)
 
 
-class SignIn(GenericAPIView):
-    serializer_class = OAuth2InputSerializer
+class SocialAuth(viewsets.GenericViewSet):
+    serializer_class = SocialAuthInputSerializer
 
     def get_object(self):
         user = self.request.user
@@ -85,9 +83,11 @@ class SignIn(GenericAPIView):
         user = self.request.backend.complete(user=user)
         return user
 
-    def post(self, request, provider):
-        decorate_request(request, provider)
-        self.get_serializer(data=self.request.data).is_valid(raise_exception=True)
+    @action(methods=["post"], detail=False)
+    def signin(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        decorate_request(request, serializer.validated_data['provider'])
         try:
             user = self.get_object()
         except (AuthException, HTTPError) as e:
@@ -98,14 +98,14 @@ class SignIn(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         return response.Response(serializer.data)
 
-
-class Connect(SignIn):
-    def post(self, request, provider):
-        if not request.user.is_authenticated:
-            raise NotAuthenticated()
-        return super().post(request, provider)
-
-
-class CallBack(APIView):
-    def get(self, request):
+    @action(
+        methods=["post"],
+        detail=False,
+        permission_classes=[IsAuthenticated]
+    )
+    def connect(self, request):
+        return self.signin(request)
+    
+    @action(methods=["get"], detail=False)
+    def callback(self, request):
         return response.Response({'code': request.GET['code']})

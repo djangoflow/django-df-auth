@@ -94,6 +94,11 @@ class OTPObtainSerializer(AbstractIdentitySerializer):
         return attrs
 
 
-class OAuth2InputSerializer(serializers.Serializer):
-    provider = serializers.CharField(required=False)
+class SocialAuthInputSerializer(serializers.Serializer):
+    provider = serializers.CharField(write_only=True)
+    code = serializers.CharField(write_only=True)
+    token = serializers.CharField(read_only=True)
+
+
+class SocialCallBackSerializer(serializers.Serializer):
     code = serializers.CharField()
