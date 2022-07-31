@@ -104,4 +104,6 @@ class SocialAuth(viewsets.GenericViewSet):
     
     @action(methods=["get"], detail=False, serializer_class=SocialCallBackSerializer)
     def callback(self, request):
-        return response.Response({'code': request.GET['code']})
+        serializer = self.get_serializer(data=request.GET)
+        serializer.is_valid(raise_exception=True)
+        return response.Response(data=serializer.validated_data)
