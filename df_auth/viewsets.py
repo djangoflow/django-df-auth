@@ -2,7 +2,6 @@ import logging
 from .serializers import OTPObtainSerializer
 from .serializers import TokenObtainSerializer
 from .serializers import OAuth2InputSerializer
-from .serializers import JWTPairSerializer
 
 from django.conf import settings
 from rest_framework import permissions
@@ -76,7 +75,7 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
 
 
 class SignIn(GenericAPIView):
-    serializer_class = JWTPairSerializer
+    serializer_class = TokenObtainSerializer
 
     def get_object(self):
         user = self.request.user
@@ -94,8 +93,10 @@ class SignIn(GenericAPIView):
         except (AuthException, HTTPError) as e:
             logger.error(e)
             return response.Response("something wrong happened", status.HTTP_400_BAD_REQUEST)
-        resp_data = self.get_serializer(instance=user)
-        return response.Response(resp_data.data)
+        serializer = self.get_serializer(data={})
+        serializer.user = user
+        serializer.is_valid(raise_exception=True)
+        return response.Response(serializer.data)
 
 
 class Connect(SignIn):

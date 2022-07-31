@@ -6,9 +6,7 @@ from django.contrib.auth.models import update_last_login
 from django.utils.module_loading import import_string
 from rest_framework import exceptions
 from rest_framework import serializers
-from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
-from rest_framework_simplejwt.tokens import RefreshToken
 
 
 User = get_user_model()
@@ -43,7 +41,7 @@ class TokenObtainSerializer(AbstractIdentitySerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        self.user = authenticate(**attrs, **self.context)
+        self.user = self.user or authenticate(**attrs, **self.context)
 
         if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
             raise exceptions.AuthenticationFailed()
@@ -100,24 +98,3 @@ class OAuth2InputSerializer(serializers.Serializer):
     provider = serializers.CharField(required=False)
     code = serializers.CharField()
     redirect_uri = serializers.CharField(required=False)
-
-
-class TokenSerializer(serializers.Serializer):
-    token = serializers.SerializerMethodField()
-
-    def get_token(self, obj):
-        token, _ = Token.objects.get_or_create(user=obj)
-        return token.key
-
-
-class JWTPairSerializer(serializers.Serializer):
-    token = serializers.SerializerMethodField()
-    refresh = serializers.SerializerMethodField()
-
-    def get_token(self, obj):
-        user = self.instance
-        return str(RefreshToken.for_user(user).access_token)
-
-    def get_refresh(self, obj):
-        user = self.instance
-        return str(RefreshToken.for_user(user))

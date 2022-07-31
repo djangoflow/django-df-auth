@@ -3,7 +3,7 @@ from rest_framework.settings import APISettings
 
 
 DEFAULTS = {
-    "USER_IDENTITY_FIELDS": ("email",),
+    "USER_IDENTITY_FIELDS": ("email","username"),
     "REQUIRED_AUTH_FIELDS": (),
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": None,
