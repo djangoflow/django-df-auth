@@ -1,32 +1,16 @@
-import logging
 from .serializers import OTPObtainSerializer
+from .serializers import SocialCallBackSerializer
+from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
-from .serializers import SocialAuthInputSerializer, SocialCallBackSerializer
-from rest_framework.permissions import IsAuthenticated
-
 from django.conf import settings
 from rest_framework import permissions
 from rest_framework import response
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
-
-from social_core.utils import get_strategy
-from social_core.exceptions import AuthException
-from social_django.utils import psa, STORAGE
-from requests.exceptions import HTTPError
-
-logger = logging.getLogger(__name__)
-
-def load_strategy(request=None):
-    return get_strategy("df_auth.strategy.DRFStrategy", STORAGE, request)
-
-@psa(settings.REST_SOCIAL_OAUTH_REDIRECT_URI, load_strategy=load_strategy)
-def decorate_request(request, backend):
-    request.backend.STATE_PARAMETER = False
-    request.backend.redirect_uri = settings.REST_SOCIAL_OAUTH_REDIRECT
 
 
 class ValidationOnlyCreateViewSet(viewsets.GenericViewSet):
@@ -74,32 +58,23 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
 
 
 class SocialAuth(viewsets.GenericViewSet):
-    serializer_class = SocialAuthInputSerializer
+    serializer_class = SocialTokenObtainSerializer
 
-    def get_object(self):
-        user = self.request.user
-        user = user if user.is_authenticated else None
-        return self.request.backend.complete(user=user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["post"], detail=False)
-    def signin(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        decorate_request(request, serializer.validated_data['provider'])
-        try:
-            user = self.get_object()
-        except (AuthException, HTTPError) as e:
-            logger.error(e)
-            return response.Response("something wrong happened", status.HTTP_400_BAD_REQUEST)
-        serializer = TokenObtainSerializer(data={})
-        serializer.user = user
-        serializer.is_valid(raise_exception=True)
-        return response.Response(serializer.data)
+    def signin(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
     @action(methods=["post"], detail=False, permission_classes=[IsAuthenticated])
-    def connect(self, request):
-        return self.signin(request)
-    
+    def connect(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
     @action(methods=["get"], detail=False, serializer_class=SocialCallBackSerializer)
     def callback(self, request):
         serializer = self.get_serializer(data=request.GET)
