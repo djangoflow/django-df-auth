@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
 
-from social_core.utils import get_strategy, user_is_authenticated
+from social_core.utils import get_strategy
 from social_core.exceptions import AuthException
 from social_django.utils import psa, STORAGE
 from requests.exceptions import HTTPError
@@ -25,7 +25,8 @@ def load_strategy(request=None):
 
 @psa(settings.REST_SOCIAL_OAUTH_REDIRECT_URI, load_strategy=load_strategy)
 def decorate_request(request, backend):
-    pass
+    request.backend.STATE_PARAMETER = False
+    request.backend.redirect_uri = settings.REST_SOCIAL_OAUTH_REDIRECT
 
 
 class ValidationOnlyCreateViewSet(viewsets.GenericViewSet):
@@ -77,9 +78,7 @@ class SocialAuth(viewsets.GenericViewSet):
 
     def get_object(self):
         user = self.request.user
-        self.request.backend.redirect_uri = settings.REST_SOCIAL_OAUTH_REDIRECT
-        user = user_is_authenticated(user) and user or None
-        self.request.backend.STATE_PARAMETER = False
+        user = user if user.is_authenticated else None
         user = self.request.backend.complete(user=user)
         return user
 

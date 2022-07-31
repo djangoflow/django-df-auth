@@ -8,8 +8,8 @@ Add these to your root URLconf:
 
 """
 from .viewsets import OTPViewSet
-from .viewsets import TokenViewSet
 from .viewsets import SocialAuth
+from .viewsets import TokenViewSet
 from django.contrib import admin
 from django.urls import include
 from django.urls import path
