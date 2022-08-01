@@ -9,10 +9,7 @@ from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
 
-import logging
 
-
-logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
