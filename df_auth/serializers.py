@@ -8,6 +8,7 @@ from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
 
+from .utils import generate_jwt
 
 User = get_user_model()
 
@@ -92,3 +93,27 @@ class OTPObtainSerializer(AbstractIdentitySerializer):
                 backend_module().generate_challenge(**attrs, **self.context)
 
         return attrs
+
+
+class OAuth2InputSerializer(serializers.Serializer):
+    """OAuth2 input serializer"""
+    provider = serializers.CharField(required=False)
+    code = serializers.CharField()
+    redirect_uri = serializers.CharField(required=False)
+
+
+class OAuth2UserJWTSerializer(serializers.Serializer):
+    """OAuth2 output JWT serializer"""
+    token = serializers.SerializerMethodField()
+
+    def get_token(self, obj):
+        return generate_jwt(obj)
+
+
+class OAuth2UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = (
+            f for f in get_user_model()._meta.fields
+            if f not in ('is_superuser', 'is_staff', 'password', 'groups', 'user_permissions')
+        )
