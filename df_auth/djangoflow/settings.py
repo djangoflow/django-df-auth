@@ -1,4 +1,5 @@
 DF_AUTH_APPS = [
+    "df_auth",
     "rest_framework_simplejwt",
     "django_otp",
     "django_otp.plugins.otp_email",

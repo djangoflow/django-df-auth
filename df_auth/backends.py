@@ -1,4 +1,4 @@
-from .serializers import api_settings
+from .settings import api_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.core.exceptions import ValidationError
