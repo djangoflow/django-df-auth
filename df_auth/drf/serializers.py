@@ -1,4 +1,4 @@
-from .settings import api_settings
+from ..settings import api_settings
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
