@@ -1,4 +1,3 @@
-from ..settings import api_settings
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
@@ -7,9 +6,17 @@ from django.utils.module_loading import import_string
 from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
-
+from social_core.exceptions import AuthCanceled, AuthForbidden
+from social_django.utils import load_backend
+from social_django.models import DjangoStorage
+from ..settings import api_settings
+from ..strategy import DRFStrategy
 
 User = get_user_model()
+
+AUTHENTICATION_BACKENDS = [
+    import_string(backend) for backend in settings.AUTHENTICATION_BACKENDS
+]
 
 
 class AbstractIdentitySerializer(serializers.Serializer):
@@ -24,25 +31,17 @@ class AbstractIdentitySerializer(serializers.Serializer):
     def validate_email(self, value):
         return User.objects.normalize_email(value)
 
-    def validate(self, attrs):
-        """
-        Remove empty values to pass to authenticate or send_otp
-        """
-        return {k: v for k, v in attrs.items() if v}
 
-
-class TokenObtainSerializer(AbstractIdentitySerializer):
+class TokenCreateSerializer(serializers.Serializer):
     token = serializers.CharField(read_only=True)
     token_class = simplejwt_settings.AUTH_TOKEN_CLASSES[0]
+    user = None
 
     @classmethod
     def get_token(cls, user):
         return cls.token_class.for_user(user)
 
     def validate(self, attrs):
-        attrs = super().validate(attrs)
-        self.user = authenticate(**attrs, **self.context)
-
         if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
             raise exceptions.AuthenticationFailed()
 
@@ -54,6 +53,16 @@ class TokenObtainSerializer(AbstractIdentitySerializer):
             update_last_login(None, self.user)
 
         return attrs
+
+
+class TokenObtainSerializer(AbstractIdentitySerializer, TokenCreateSerializer):
+    def validate(self, attrs):
+        """
+        Remove empty values to pass to authenticate or send_otp
+        """
+        attrs = {k: v for k, v in attrs.items() if v}
+        self.user = authenticate(**attrs, **self.context)
+        return super().validate(attrs)
 
     def get_fields(self):
         fields = super().get_fields()
@@ -85,10 +94,35 @@ class OTPObtainSerializer(AbstractIdentitySerializer):
         }
 
     def validate(self, attrs):
+        attrs = {k: v for k, v in attrs.items() if v}
         attrs = super().validate(attrs)
-        for backend in settings.AUTHENTICATION_BACKENDS:
-            backend_module = import_string(backend)
-            if hasattr(backend_module, "generate_challenge"):
-                backend_module().generate_challenge(**attrs, **self.context)
-
+        for backend in AUTHENTICATION_BACKENDS:
+            if hasattr(backend, "generate_challenge"):
+                backend().generate_challenge(**attrs, **self.context)
         return attrs
+
+
+class SocialTokenObtainSerializer(TokenCreateSerializer):
+    access_token = serializers.CharField(write_only=True)
+    provider = serializers.ChoiceField(
+        choices=[
+            (backend.name, backend.name)
+            for backend in AUTHENTICATION_BACKENDS
+            if hasattr(backend, "name")
+        ],
+        write_only=True,
+    )
+
+    response = serializers.JSONField(read_only=True)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        request.social_strategy = DRFStrategy(DjangoStorage, request)
+        request.backend = load_backend(request.social_strategy, attrs["provider"], redirect_uri=None)
+
+        try:
+            self.user = request.backend.do_auth(attrs['access_token'])
+        except (AuthCanceled, AuthForbidden):
+            raise exceptions.AuthenticationFailed()
+
+        return super().validate(attrs)

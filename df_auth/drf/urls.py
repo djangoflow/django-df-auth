@@ -7,16 +7,15 @@ Add these to your root URLconf:
     ]
 
 """
-from .viewsets import OTPViewSet
-from .viewsets import TokenViewSet
-from django.urls import include
-from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .viewsets import OTPViewSet
+from .viewsets import SocialTokenViewSet
+from .viewsets import TokenViewSet
 
 router = DefaultRouter()
 router.register("token", TokenViewSet, basename="token")
 router.register("otp", OTPViewSet, basename="otp")
+router.register("social", SocialTokenViewSet, basename="social")
 
-urlpatterns = [path("social/", include("social_django.urls", namespace="social"))]
-urlpatterns += router.urls
+urlpatterns = router.urls

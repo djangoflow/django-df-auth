@@ -1,4 +1,5 @@
 from .serializers import OTPObtainSerializer
+from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
 from django.conf import settings
 from rest_framework import permissions
@@ -51,4 +52,9 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
 
 class OTPViewSet(ValidationOnlyCreateViewSet):
     serializer_class = OTPObtainSerializer
+    permission_classes = (permissions.AllowAny,)
+
+
+class SocialTokenViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = SocialTokenObtainSerializer
     permission_classes = (permissions.AllowAny,)
