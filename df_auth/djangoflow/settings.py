@@ -12,13 +12,6 @@ DF_AUTH_APPS = [
     "django_otp.plugins.otp_static",
     "otp_twilio",
     "social_django",
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
-    'allauth.socialaccount.providers.apple',
-    'allauth.socialaccount.providers.facebook',
-    'allauth.socialaccount.providers.github',
 ]
 
 AUTHENTICATION_BACKENDS = (
