@@ -29,7 +29,7 @@ class EmailOTPBackend(ModelBackend):
                                 if not getattr(
                                     user, api_settings.EMAIL_CONFIRMED_FIELD, True
                                 ):
-                                    setattr(api_settings.EMAIL_CONFIRMED_FIELD, True)
+                                    setattr(user, api_settings.EMAIL_CONFIRMED_FIELD, True)
                                     updated_fields.append(
                                         api_settings.EMAIL_CONFIRMED_FIELD
                                     )
