@@ -1,0 +1,58 @@
+diff a/df_auth/drf/serializers.py b/df_auth/drf/serializers.py	(rejected hunks)
+@@ -1,4 +1,5 @@
+ from ..settings import api_settings
++from ..social_auth import authenticate_or_connect
+ from django.conf import settings
+ from django.contrib.auth import authenticate
+ from django.contrib.auth import get_user_model
+@@ -96,3 +97,50 @@ class OTPObtainSerializer(AbstractIdentitySerializer):
+ 
+ class CallBackSerializer(serializers.Serializer):
+     code = serializers.CharField()
++
++
++class SocialSignInSerializer(serializers.Serializer):
++    user = None
++    token_class = simplejwt_settings.AUTH_TOKEN_CLASSES[0]
++    token = serializers.CharField(read_only=True)
++    provider = serializers.CharField(write_only=True)
++    code = serializers.CharField(write_only=True)
++
++    @classmethod
++    def get_token(cls, user):
++        token = cls.token_class.for_user(user)
++        if simplejwt_settings.UPDATE_LAST_LOGIN:
++            update_last_login(None, user)
++        return token
++
++    def validate(self, attrs):
++        request = self.context["request"]
++        self.user = authenticate_or_connect(request, attrs, None)
++        if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
++            raise exceptions.AuthenticationFailed()
++        attrs["token"] = str(self.get_token(self.user))
++        return attrs
++
++
++class SocialConnectSerializer(serializers.Serializer):
++    user = None
++    provider = serializers.CharField(write_only=True)
++    code = serializers.CharField(write_only=True)
++    token = serializers.CharField(read_only=True)
++    token_class = simplejwt_settings.AUTH_TOKEN_CLASSES[0]
++
++    @classmethod
++    def get_token(cls, user):
++        token = cls.token_class.for_user(user)
++        if simplejwt_settings.UPDATE_LAST_LOGIN:
++            update_last_login(None, user)
++        return token
++
++    def validate(self, attrs):
++        request = self.context["request"]
++        self.user = request.user
++        authenticate_or_connect(request, attrs, self.user)
++        if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
++            raise exceptions.AuthenticationFailed()
++        attrs["token"] = str(self.get_token(self.user))
++        return attrs

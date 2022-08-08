@@ -1,0 +1,6 @@
+diff a/requirements.txt b/requirements.txt	(rejected hunks)
+@@ -3,3 +3,4 @@ djangorestframework>=3
+ pytest-django>=4.5
+ djangorestframework-simplejwt
+ social-auth-app-django
++python-dotenv

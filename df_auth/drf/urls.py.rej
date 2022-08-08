@@ -1,0 +1,21 @@
+diff a/df_auth/drf/urls.py b/df_auth/drf/urls.py	(rejected hunks)
+@@ -8,7 +8,7 @@ Add these to your root URLconf:
+ 
+ """
+ from .viewsets import OTPViewSet
+-from .viewsets import TokenViewSet, CallBackViewSet
++from .viewsets import CallBackViewSet, TokenViewSet, SocialSignInViewSet, SocialConnectViewSet
+ from django.contrib import admin
+ from django.urls import include
+ from django.urls import path
+@@ -18,7 +18,9 @@ from rest_framework.routers import DefaultRouter
+ router = DefaultRouter()
+ router.register("token", TokenViewSet, basename="token")
+ router.register("otp", OTPViewSet, basename="otp")
+-router.register("social/callback", CallBackViewSet, basename="callback")
++router.register("social/callback", CallBackViewSet, basename="social-callback")
++router.register("social/signin", SocialSignInViewSet, basename="social-signin")
++router.register("social/connect", SocialConnectViewSet, basename="social-connect")
+ 
+ urlpatterns = [
+     path("admin/", admin.site.urls),

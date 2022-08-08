@@ -1,0 +1,33 @@
+diff a/df_auth/drf/viewsets.py b/df_auth/drf/viewsets.py	(rejected hunks)
+@@ -1,5 +1,6 @@
+ from .serializers import OTPObtainSerializer
+-from .serializers import CallBackSerializer, TokenObtainSerializer
++from .serializers import (CallBackSerializer, TokenObtainSerializer, SocialSignInSerializer,
++                          SocialConnectSerializer)
+ from django.conf import settings
+ from rest_framework import permissions
+ from rest_framework import response
+@@ -59,3 +60,23 @@ class CallBackViewSet(viewsets.GenericViewSet):
+         serializer = CallBackSerializer(data=request.GET)
+         serializer.is_valid(raise_exception=True)
+         return response.Response(serializer.data, status=status.HTTP_200_OK)
++
++
++class SocialSignInViewSet(viewsets.GenericViewSet):
++    serializer_class = SocialSignInSerializer
++    permission_classes = (permissions.AllowAny,)
++
++    def create(self, request, *args, **kwargs):
++        serializer = self.get_serializer(data=request.data)
++        serializer.is_valid(raise_exception=True)
++        return response.Response(serializer.data, status=status.HTTP_200_OK)
++
++
++class SocialConnectViewSet(viewsets.GenericViewSet):
++    serializer_class = SocialConnectSerializer
++    permission_classes = (permissions.IsAuthenticated,)
++
++    def create(self, request, *args, **kwargs):
++        serializer = self.get_serializer(data=request.data)
++        serializer.is_valid(raise_exception=True)
++        return response.Response(serializer.data, status=status.HTTP_200_OK)
