@@ -1,10 +1,10 @@
-from .settings import api_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_otp.plugins.otp_email.models import EmailDevice
 
+from .settings import api_settings
 
 User = get_user_model()
 
@@ -27,7 +27,7 @@ class EmailOTPBackend(ModelBackend):
                             if device.verify_token(otp):
                                 updated_fields = []
                                 if not getattr(
-                                    user, api_settings.EMAIL_CONFIRMED_FIELD, True
+                                        user, api_settings.EMAIL_CONFIRMED_FIELD, True
                                 ):
                                     setattr(user, api_settings.EMAIL_CONFIRMED_FIELD, True)
                                     updated_fields.append(
@@ -35,9 +35,9 @@ class EmailOTPBackend(ModelBackend):
                                     )
 
                                 if (
-                                    api_settings.OTP_EMAIL_UPDATE
-                                    and device.email
-                                    and user.email != device.email
+                                        api_settings.OTP_EMAIL_UPDATE
+                                        and device.email
+                                        and user.email != device.email
                                 ):
                                     user.email = device.email
                                     updated_fields.append("email")
@@ -50,9 +50,11 @@ class EmailOTPBackend(ModelBackend):
                                 _("Wrong or expired one-time password")
                             )
 
-    def generate_challenge(self, request=None, user=None, email=None, **kwargs):
+    def generate_challenge(self, request=None, user=None, email=None, extra_context=None, **kwargs):
+        if extra_context is None:
+            extra_context = {}
         users = [user] if user else self.get_users(email)
         if email:
             for user in users:
                 device = EmailDevice.objects.get_or_create(user=user, email=email)[0]
-                device.generate_challenge()
+                device.generate_challenge(extra_context=extra_context)
