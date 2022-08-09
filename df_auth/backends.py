@@ -51,8 +51,6 @@ class EmailOTPBackend(ModelBackend):
                             )
 
     def generate_challenge(self, request=None, user=None, email=None, extra_context=None, **kwargs):
-        if extra_context is None:
-            extra_context = {}
         users = [user] if user else self.get_users(email)
         if email:
             for user in users:
