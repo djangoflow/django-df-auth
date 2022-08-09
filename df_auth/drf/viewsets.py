@@ -1,17 +1,17 @@
-from .serializers import OTPObtainSerializer
-from .serializers import SocialTokenObtainSerializer
-from .serializers import TokenObtainSerializer
 from django.conf import settings
-from rest_framework import permissions
-from rest_framework import response
-from rest_framework import status
-from rest_framework import viewsets
+from rest_framework import permissions, response, status, viewsets, throttling
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
 
+from .serializers import OTPObtainSerializer
+from .serializers import SocialTokenObtainSerializer
+from .serializers import TokenObtainSerializer
+
 
 class ValidationOnlyCreateViewSet(viewsets.GenericViewSet):
+    throttle_scope = 'df_auth'
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
