@@ -1,3 +1,5 @@
+from ..settings import api_settings
+from ..strategy import DRFStrategy
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
@@ -6,11 +8,11 @@ from django.utils.module_loading import import_string
 from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
-from social_core.exceptions import AuthCanceled, AuthForbidden
-from social_django.utils import load_backend
+from social_core.exceptions import AuthCanceled
+from social_core.exceptions import AuthForbidden
 from social_django.models import DjangoStorage
-from ..settings import api_settings
-from ..strategy import DRFStrategy
+from social_django.utils import load_backend
+
 
 User = get_user_model()
 
@@ -32,11 +34,13 @@ class AbstractIdentitySerializer(serializers.Serializer):
         return User.objects.normalize_email(value)
 
 
-class TokenCreateSerializer(serializers.Serializer):
+class TokenSerializer(serializers.Serializer):
     token = serializers.CharField(read_only=True)
     token_class = simplejwt_settings.AUTH_TOKEN_CLASSES[0]
     user = None
 
+
+class TokenCreateSerializer(TokenSerializer):
     @classmethod
     def get_token(cls, user):
         return cls.token_class.for_user(user)
@@ -110,7 +114,6 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
             for backend in AUTHENTICATION_BACKENDS
             if hasattr(backend, "name")
         ],
-        write_only=True,
     )
 
     response = serializers.JSONField(read_only=True)
@@ -118,10 +121,12 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
     def validate(self, attrs):
         request = self.context["request"]
         request.social_strategy = DRFStrategy(DjangoStorage, request)
-        request.backend = load_backend(request.social_strategy, attrs["provider"], redirect_uri=None)
+        request.backend = load_backend(
+            request.social_strategy, attrs["provider"], redirect_uri=None
+        )
 
         try:
-            self.user = request.backend.do_auth(attrs['access_token'])
+            self.user = request.backend.do_auth(attrs["access_token"])
         except (AuthCanceled, AuthForbidden):
             raise exceptions.AuthenticationFailed()
 

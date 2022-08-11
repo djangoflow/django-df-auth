@@ -7,11 +7,11 @@ Add these to your root URLconf:
     ]
 
 """
-from rest_framework.routers import DefaultRouter
-
 from .viewsets import OTPViewSet
 from .viewsets import SocialTokenViewSet
 from .viewsets import TokenViewSet
+from rest_framework.routers import DefaultRouter
+
 
 router = DefaultRouter()
 router.register("token", TokenViewSet, basename="token")
