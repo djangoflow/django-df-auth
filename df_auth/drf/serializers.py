@@ -88,7 +88,9 @@ class TokenObtainSerializer(AbstractIdentitySerializer, TokenCreateSerializer):
         return fields
 
 
-class OTPObtainSerializer(AbstractIdentitySerializer):
+class AbstractAuthBackendSerializer(AbstractIdentitySerializer):
+    backend_method_name = None
+
     def get_fields(self):
         return super().get_fields() | {
             f: serializers.CharField(write_only=True, required=False)
@@ -101,9 +103,17 @@ class OTPObtainSerializer(AbstractIdentitySerializer):
         attrs = {k: v for k, v in attrs.items() if v}
         attrs = super().validate(attrs)
         for backend in AUTHENTICATION_BACKENDS:
-            if hasattr(backend, "generate_challenge"):
-                backend().generate_challenge(**attrs, **self.context)
-        return attrs
+            if hasattr(backend, self.backend_method_name):
+                self.user = getattr(backend(), self.backend_method_name)(
+                    **attrs, **self.context
+                )
+                if self.user:
+                    return attrs
+        raise exceptions.AuthenticationFailed("No matching authorization backend")
+
+
+class OTPObtainSerializer(AbstractAuthBackendSerializer):
+    backend_method_name = "generate_challenge"
 
 
 class SocialTokenObtainSerializer(TokenCreateSerializer):
@@ -131,3 +141,10 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
             raise exceptions.AuthenticationFailed()
 
         return super().validate(attrs)
+
+
+class SignupSerializer(AbstractAuthBackendSerializer):
+    backend_method_name = "register"
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    user = None

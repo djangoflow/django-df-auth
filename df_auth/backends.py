@@ -60,3 +60,14 @@ class EmailOTPBackend(ModelBackend):
             for user in users:
                 device = EmailDevice.objects.get_or_create(user=user, email=email)[0]
                 device.generate_challenge(extra_context=extra_context)
+        return users[0] if users and len(users) > 0 else None
+
+    def register(self, request=None, email=None, extra_context=None, **kwargs):
+        if self.get_users(email):
+            raise ValidationError("User with this email is already registered")
+        user, created = User._default_manager.get_or_create(
+            email=email,
+            first_name=kwargs.get("first_name", ""),
+            last_name=kwargs.get("last_name", ""),
+        )
+        return user

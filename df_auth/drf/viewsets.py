@@ -1,4 +1,5 @@
 from .serializers import OTPObtainSerializer
+from .serializers import SignupSerializer
 from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
 from .serializers import TokenSerializer
@@ -23,6 +24,10 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
     serializer_class = TokenObtainSerializer
     response_serializer_class = TokenSerializer
     permission_classes = (permissions.AllowAny,)
+
+    @action(methods=["post"], detail=False, serializer_class=SignupSerializer)
+    def signup(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
     @action(
         methods=["post"],
