@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
 from django.utils.module_loading import import_string
+from itertools import chain
 from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
@@ -94,7 +95,7 @@ class AbstractAuthBackendSerializer(AbstractIdentitySerializer):
     def get_fields(self):
         return super().get_fields() | {
             f: serializers.CharField(write_only=True, required=False)
-            for f in zip(
+            for f in chain(
                 api_settings.REQUIRED_AUTH_FIELDS, api_settings.OPTIONAL_AUTH_FIELDS
             )
         }
