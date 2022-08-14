@@ -131,13 +131,14 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
 
     def validate(self, attrs):
         request = self.context["request"]
+        user = request.user if request.user.is_authenticated else None
         request.social_strategy = DRFStrategy(DjangoStorage, request)
         request.backend = load_backend(
             request.social_strategy, attrs["provider"], redirect_uri=None
         )
 
         try:
-            self.user = request.backend.do_auth(attrs["access_token"])
+            self.user = request.backend.do_auth(attrs["access_token"], user=user)
         except (AuthCanceled, AuthForbidden):
             raise exceptions.AuthenticationFailed()
 
