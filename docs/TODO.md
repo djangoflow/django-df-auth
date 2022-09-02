@@ -1,4 +1,2 @@
-- setup git CI/CD to publish to pypi upon tags
 - test suite
 - configuration app
-- 

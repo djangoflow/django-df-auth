@@ -22,7 +22,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-class AbstractIdentitySerializer(serializers.Serializer):
+class IdentitySerializerMixin(serializers.Serializer):
     user = None
 
     def get_fields(self):
@@ -60,7 +60,7 @@ class TokenCreateSerializer(TokenSerializer):
         return attrs
 
 
-class TokenObtainSerializer(AbstractIdentitySerializer, TokenCreateSerializer):
+class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
     def validate(self, attrs):
         """
         Remove empty values to pass to authenticate or send_otp
@@ -89,7 +89,7 @@ class TokenObtainSerializer(AbstractIdentitySerializer, TokenCreateSerializer):
         return fields
 
 
-class AbstractAuthBackendSerializer(AbstractIdentitySerializer):
+class AuthBackendSerializerMixin(IdentitySerializerMixin):
     backend_method_name = None
 
     def get_fields(self):
@@ -110,14 +110,21 @@ class AbstractAuthBackendSerializer(AbstractIdentitySerializer):
                 )
                 if self.user:
                     return attrs
-        raise exceptions.AuthenticationFailed("No matching authorization backend")
+        raise exceptions.AuthenticationFailed(
+            "Authorization backend not found", code="not_found"
+        )
 
 
-class OTPObtainSerializer(AbstractAuthBackendSerializer):
+class OTPObtainSerializer(AuthBackendSerializerMixin):
     backend_method_name = "generate_challenge"
 
 
-class SocialTokenObtainSerializer(TokenCreateSerializer):
+class FirstLastNameSerializerMixin(serializers.Serializer):
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+
+
+class SocialTokenObtainSerializer(FirstLastNameSerializerMixin, TokenCreateSerializer):
     access_token = serializers.CharField(write_only=True)
     provider = serializers.ChoiceField(
         choices=[
@@ -142,11 +149,19 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
         except (AuthCanceled, AuthForbidden):
             raise exceptions.AuthenticationFailed()
 
+        update_fields = []
+        for attr in ("first_name", "last_name"):
+            if not getattr(self.user, attr, None):
+                value = attrs.get(attr, None)
+                if value:
+                    setattr(self.user, attr, value)
+                    update_fields.append(attr)
+        if update_fields:
+            self.user.save(update_fields=update_fields)
+
         return super().validate(attrs)
 
 
-class SignupSerializer(AbstractAuthBackendSerializer):
+class SignupSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "register"
-    first_name = serializers.CharField(required=False)
-    last_name = serializers.CharField(required=False)
     user = None
