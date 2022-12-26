@@ -9,6 +9,7 @@ DEFAULTS = {
     "TEST_USER_EMAIL": None,
     "EMAIL_CONFIRMED_FIELD": "email_confirmed",
     "OTP_EMAIL_UPDATE": True,
+    "NOT_FOUND_ERROR_MESSAGE": "Authorization backend not found",
 }
 
 IMPORT_STRINGS = []

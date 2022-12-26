@@ -111,7 +111,7 @@ class AuthBackendSerializerMixin(IdentitySerializerMixin):
                 if self.user:
                     return attrs
         raise exceptions.AuthenticationFailed(
-            "Authorization backend not found", code="not_found"
+            api_settings.NOT_FOUND_ERROR_MESSAGE, code="not_found"
         )
 
 
