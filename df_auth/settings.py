@@ -9,6 +9,7 @@ DEFAULTS = {
     "TEST_USER_EMAIL": None,
     "EMAIL_CONFIRMED_FIELD": "email_confirmed",
     "OTP_EMAIL_UPDATE": True,
+    "PHONE_NUMBER_FIELD": "phone_number",
 }
 
 IMPORT_STRINGS = []
