@@ -14,7 +14,6 @@ from social_core.exceptions import AuthForbidden
 from social_django.models import DjangoStorage
 from social_django.utils import load_backend
 
-
 User = get_user_model()
 
 AUTHENTICATION_BACKENDS = [
@@ -91,6 +90,7 @@ class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
 
 class AuthBackendSerializerMixin(IdentitySerializerMixin):
     backend_method_name = None
+    backend_extra_kwargs = {}
 
     def get_fields(self):
         return super().get_fields() | {
@@ -106,7 +106,7 @@ class AuthBackendSerializerMixin(IdentitySerializerMixin):
         for backend in AUTHENTICATION_BACKENDS:
             if hasattr(backend, self.backend_method_name):
                 self.user = getattr(backend(), self.backend_method_name)(
-                    **attrs, **self.context
+                    **attrs, **self.backend_extra_kwargs, **self.context
                 )
                 if self.user:
                     return attrs
