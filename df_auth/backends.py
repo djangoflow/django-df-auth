@@ -64,16 +64,15 @@ class EmailOTPBackend(ModelBackend):
         return users[0] if users and len(users) > 0 else None
 
     def register(self, request=None, email=None, extra_context=None, **kwargs):
-        if not email:
-            return None
-        if self.get_users(email):
-            raise ValidationError("User with this email is already registered")
-        user, created = User._default_manager.get_or_create(
-            email=email,
-            first_name=kwargs.get("first_name", ""),
-            last_name=kwargs.get("last_name", ""),
-        )
-        return user
+        if email:
+            if self.get_users(email):
+                raise ValidationError("User with this email is already registered")
+            user, created = User._default_manager.get_or_create(
+                email=email,
+                first_name=kwargs.get("first_name", ""),
+                last_name=kwargs.get("last_name", ""),
+            )
+            return user
 
 class TwilioSMSOTPBackend(ModelBackend):
     @staticmethod
@@ -114,11 +113,12 @@ class TwilioSMSOTPBackend(ModelBackend):
         return users[0] if users and len(users) > 0 else None
 
     def register(self, request=None, phone=None, extra_context=None, **kwargs):
-        if self.get_users(phone):
-            raise ValidationError("User with this phone number is already registered")
-        user = User._default_manager.create(
-            first_name=kwargs.get("first_name", ""),
-            last_name=kwargs.get("last_name", ""),
-        )
-        TwilioSMSDevice.objects.get_or_create(user=user, number=phone)
-        return user
+        if phone:
+            if self.get_users(phone):
+                raise ValidationError("User with this phone number is already registered")
+            user = User._default_manager.create(
+                first_name=kwargs.get("first_name", ""),
+                last_name=kwargs.get("last_name", ""),
+            )
+            TwilioSMSDevice.objects.get_or_create(user=user, number=phone)
+            return user
