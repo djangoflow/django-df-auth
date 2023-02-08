@@ -119,6 +119,10 @@ class OTPObtainSerializer(AuthBackendSerializerMixin):
     backend_method_name = "generate_challenge"
 
 
+class OTPConnectObtainSerializer(AuthBackendSerializerMixin):
+    backend_method_name = "generate_challenge_connect"
+
+
 class FirstLastNameSerializerMixin(serializers.Serializer):
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
@@ -165,3 +169,13 @@ class SocialTokenObtainSerializer(FirstLastNameSerializerMixin, TokenCreateSeria
 class SignupSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "register"
     user = None
+
+class InviteSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
+    backend_method_name = "invite"
+    user = None
+
+class ConnectSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
+    backend_method_name = "connect"
+    user = None
+
+

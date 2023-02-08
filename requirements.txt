@@ -6,3 +6,5 @@ django-otp-twilio
 djangorestframework-simplejwt
 twilio
 social-auth-app-django
+pytest
+pytest-django

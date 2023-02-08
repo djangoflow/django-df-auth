@@ -6,7 +6,6 @@ from django.utils.translation import gettext_lazy as _
 from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
 
-
 User = get_user_model()
 
 
@@ -21,40 +20,11 @@ class EmailOTPBackend(ModelBackend):
                 if user.email == api_settings.TEST_USER_EMAIL:
                     return user
                 if self.user_can_authenticate(user):
-                    devices = EmailDevice.objects.filter(user=user)
-
-                    if devices:
-                        for device in devices.filter(confirmed=True):
-                            if device.verify_token(otp):
-                                updated_fields = []
-                                if not getattr(
-                                    user, api_settings.EMAIL_CONFIRMED_FIELD, True
-                                ):
-                                    setattr(
-                                        user, api_settings.EMAIL_CONFIRMED_FIELD, True
-                                    )
-                                    updated_fields.append(
-                                        api_settings.EMAIL_CONFIRMED_FIELD
-                                    )
-
-                                if (
-                                    api_settings.OTP_EMAIL_UPDATE
-                                    and device.email
-                                    and user.email != device.email
-                                ):
-                                    user.email = device.email
-                                    updated_fields.append("email")
-
-                                if updated_fields:
-                                    user.save(update_fields=updated_fields)
-
-                                return user
-                            raise ValidationError(
-                                _("Wrong or expired one-time password")
-                            )
+                    devices = EmailDevice.objects.filter(user=user, email=email)
+                    return self.check_otp(devices, user, otp)
 
     def generate_challenge(
-        self, request=None, user=None, email=None, extra_context=None, **kwargs
+            self, request=None, user=None, email=None, extra_context=None, **kwargs
     ):
         users = [user] if user else self.get_users(email)
         if email:
@@ -63,16 +33,73 @@ class EmailOTPBackend(ModelBackend):
                 device.generate_challenge(extra_context=extra_context)
         return users[0] if users and len(users) > 0 else None
 
-    def register(self, request=None, email=None, extra_context=None, **kwargs):
-        if email:
-            if self.get_users(email):
-                raise ValidationError("User with this email is already registered")
-            user, created = User._default_manager.get_or_create(
-                email=email,
-                first_name=kwargs.get("first_name", ""),
-                last_name=kwargs.get("last_name", ""),
+    def generate_challenge_connect(self, request=None, email=None, **kwargs):
+        if email and not request.user.is_anonymous:
+            device = EmailDevice.objects.filter(user=request.user, email=email).first()
+
+            if not device:
+                if self.get_users(email):
+                    raise ValidationError(
+                        _("User with this email is already exist")
+                    )
+                device = EmailDevice.objects.get_or_create(user=request.user, email=email)[0]
+
+            device.generate_challenge(kwargs.get("extra_context"))
+            return request.user
+
+    def connect(self, request, email=None, otp=None, **kwargs):
+        user = request.user
+        if email and otp and self.user_can_authenticate(user):
+            devices = EmailDevice.objects.filter(user=user, email=email, confirmed=True)
+            return self.check_otp(devices, user, otp)
+
+    def check_otp(self, devices, user, otp):
+        for device in devices.filter(confirmed=True):
+            if device.verify_token(otp):
+                updated_fields = []
+                if not getattr(
+                        user, api_settings.EMAIL_CONFIRMED_FIELD, True
+                ):
+                    setattr(
+                        user, api_settings.EMAIL_CONFIRMED_FIELD, True
+                    )
+                    updated_fields.append(
+                        api_settings.EMAIL_CONFIRMED_FIELD
+                    )
+
+                if (
+                        api_settings.OTP_EMAIL_UPDATE
+                        and device.email
+                        and user.email != device.email
+                ):
+                    user.email = device.email
+                    updated_fields.append("email")
+
+                if updated_fields:
+                    user.save(update_fields=updated_fields)
+
+                return user
+            raise ValidationError(
+                _("Wrong or expired one-time password")
             )
-            return user
+
+    def register(self, request=None, email=None, extra_context=None, **kwargs):
+        if not email:
+            return None
+        if self.get_users(email):
+            raise ValidationError("User with this email is already registered")
+        user, created = User._default_manager.get_or_create(
+            email=email,
+            first_name=kwargs.get("first_name", ""),
+            last_name=kwargs.get("last_name", ""),
+        )
+        return user
+
+    def invite(self, email=None, **kwargs):
+        if email:
+            users = self.get_users(email)
+            return users[0] if users else self.register(email=email, **kwargs)
+
 
 class TwilioSMSOTPBackend(ModelBackend):
     @staticmethod
@@ -86,20 +113,10 @@ class TwilioSMSOTPBackend(ModelBackend):
             for user in self.get_users(phone):
                 if self.user_can_authenticate(user):
                     devices = TwilioSMSDevice.objects.filter(user=user)
-
-                    if devices:
-                        for device in devices.filter(confirmed=True):
-                            if device.verify_token(otp):
-                                if api_settings.PHONE_NUMBER_FIELD:
-                                    setattr(user, api_settings.PHONE_NUMBER_FIELD, phone)
-                                    user.save(update_fields=[api_settings.PHONE_NUMBER_FIELD])
-                                return user
-                            raise ValidationError(
-                                _("Wrong or expired one-time password")
-                            )
+                    return self.check_otp(devices, user, otp)
 
     def generate_challenge(
-        self, request=None, user=None, phone=None, extra_context=None, **kwargs
+            self, request=None, user=None, phone=None, extra_context=None, **kwargs
     ):
         if not phone:
             return None
@@ -112,13 +129,49 @@ class TwilioSMSOTPBackend(ModelBackend):
             device.generate_challenge()
         return users[0] if users and len(users) > 0 else None
 
-    def register(self, request=None, phone=None, extra_context=None, **kwargs):
+    def generate_challenge_connect(self, request, phone=None, **kwargs):
+        user = request.user
+        if phone and not user.is_anonymous:
+            device = TwilioSMSDevice.objects.filter(user=user, number=phone).first()
+
+            if not device:
+                if self.get_users(phone):
+                    raise ValidationError(
+                        _("User with this phone is already exist")
+                    )
+                device = TwilioSMSDevice.objects.get_or_create(user=request.user, number=phone)[0]
+
+            device.generate_challenge()
+            return request.user
+
+    def register(self, phone=None, **kwargs):
+        if self.get_users(phone):
+            raise ValidationError("User with this phone number is already registered")
+        user = User._default_manager.create(
+            first_name=kwargs.get("first_name", ""),
+            last_name=kwargs.get("last_name", ""),
+        )
+        TwilioSMSDevice.objects.get_or_create(user=user, number=phone)
+        return user
+
+    def invite(self, phone=None, **kwargs):
         if phone:
-            if self.get_users(phone):
-                raise ValidationError("User with this phone number is already registered")
-            user = User._default_manager.create(
-                first_name=kwargs.get("first_name", ""),
-                last_name=kwargs.get("last_name", ""),
+            users = self.get_users(phone)
+            return users[0] if users else self.register(phone=phone, **kwargs)
+
+    def check_otp(self, devices, user, otp):
+        for device in devices.filter(confirmed=True):
+            if device.verify_token(otp):
+                if api_settings.PHONE_NUMBER_FIELD:
+                    setattr(user, api_settings.PHONE_NUMBER_FIELD, device.number)
+                    user.save(update_fields=[api_settings.PHONE_NUMBER_FIELD])
+                return user
+            raise ValidationError(
+                _("Wrong or expired one-time password")
             )
-            TwilioSMSDevice.objects.get_or_create(user=user, number=phone)
-            return user
+
+    def connect(self, request=None, phone=None, otp=None, **kwargs):
+        user = request.user
+        if phone and otp and self.user_can_authenticate(user):
+            devices = TwilioSMSDevice.objects.filter(user=user, number=phone, confirmed=True)
+            return self.check_otp(devices, user, otp)
