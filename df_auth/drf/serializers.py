@@ -119,10 +119,6 @@ class OTPObtainSerializer(AuthBackendSerializerMixin):
     backend_method_name = "generate_challenge"
 
 
-class OTPConnectObtainSerializer(AuthBackendSerializerMixin):
-    backend_method_name = "generate_challenge_connect"
-
-
 class FirstLastNameSerializerMixin(serializers.Serializer):
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)

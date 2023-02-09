@@ -1,5 +1,5 @@
 from ..permissions import IsUnauthenticated
-from .serializers import OTPObtainSerializer, InviteSerializer, ConnectSerializer, OTPConnectObtainSerializer
+from .serializers import OTPObtainSerializer, InviteSerializer, ConnectSerializer
 from .serializers import SignupSerializer
 from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
@@ -72,11 +72,6 @@ class OTPViewSet(ValidationOnlyCreateViewSet):
     throttle_scope = "otp"
     serializer_class = OTPObtainSerializer
     permission_classes = (permissions.AllowAny,)
-
-    @action(methods=["post"], detail=False, serializer_class=OTPConnectObtainSerializer,
-            permission_classes=(permissions.IsAuthenticated,))
-    def connect(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
 
 
 class SocialTokenViewSet(ValidationOnlyCreateViewSet):
