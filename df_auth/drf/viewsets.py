@@ -26,15 +26,6 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
     response_serializer_class = TokenSerializer
     permission_classes = (permissions.AllowAny,)
 
-    @action(methods=["post"], detail=False, serializer_class=SignupSerializer)
-    def signup(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
-
-    @action(methods=["post"], detail=False, serializer_class=InviteSerializer,
-            permission_classes=(permissions.IsAuthenticated,))
-    def invite(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
-
     @action(methods=["post"], detail=False, serializer_class=ConnectSerializer,
             permission_classes=(permissions.IsAuthenticated,))
     def connect(self, request, *args, **kwargs):
@@ -66,6 +57,21 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
             raise NotImplementedError
 
         return self.create(request, *args, **kwargs)
+
+
+class SignupViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = SignupSerializer
+    permission_classes = (permissions.AllowAny,)
+
+
+class ConnectViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = ConnectSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+
+class InviteViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = InviteSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 
 
 class OTPViewSet(ValidationOnlyCreateViewSet):
