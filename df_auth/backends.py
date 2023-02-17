@@ -97,7 +97,10 @@ class BaseOTPBackend(ModelBackend):
 
         return device.user
 
-    def send_invite(self, device: SideChannelDevice):
+    def send_invite(self, user: User, device: SideChannelDevice):
+        """
+        the User invites device.User to join
+        """
         device.generate_challenge()
 
     def update_user_identity_field(self, device: SideChannelDevice):
@@ -197,7 +200,7 @@ class BaseOTPBackend(ModelBackend):
             user = self.create_user(**kwargs)
             device = self.create_device(user, **kwargs)
 
-        self.send_invite(device)
+        self.send_invite(request.user, device)
         return user
 
 
