@@ -1,3 +1,8 @@
+import functools
+from typing import Optional, List, Type
+
+from django_otp.models import SideChannelDevice
+
 from .settings import api_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
@@ -9,163 +14,201 @@ from otp_twilio.models import TwilioSMSDevice
 User = get_user_model()
 
 
-class EmailOTPBackend(ModelBackend):
-    @staticmethod
-    def get_users(email):
-        return User.objects.filter(is_active=True, email=email)
+def ensure_backend_effective(method):
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        if self.is_backend_effective(**kwargs):
+            return method(self, *args, **kwargs)
 
-    def authenticate(self, request=None, email=None, otp=None, **kwargs):
-        if email and otp:
-            for user in self.get_users(email):
-                if user.email == api_settings.TEST_USER_EMAIL:
-                    return user
-                if self.user_can_authenticate(user):
-                    devices = EmailDevice.objects.filter(user=user, email=email)
-                    return self.authenticate_devices(devices, user, otp)
+    return wrapper
 
-    def generate_challenge(
-            self, request=None, user=None, email=None, extra_context=None, **kwargs
-    ):
-        if not email:
-            return None
 
-        if request.user.is_authenticated:
-            device = EmailDevice.objects.filter(user=request.user, email=email).first()
-            if not device and self.get_users(email):
-                raise ValidationError(
-                    _("User with this email is already exist")
-                )
-            users = [request.user]
-        else:
-            users = [user] if user else self.get_users(email)
+class TestEmailBackend(ModelBackend):
+    def authenticate(self, request, **kwargs):
+        if api_settings.TEST_USER_EMAIL and kwargs.get("email") == api_settings.TEST_USER_EMAIL:
+            return User._default_manager.get(email=api_settings.TEST_USER_EMAIL)
 
-        for user in users:
-            device = EmailDevice.objects.get_or_create(user=user, email=email)[0]
-            device.generate_challenge(extra_context=extra_context)
-        return users[0] if users and len(users) > 0 else None
 
-    def connect(self, request, email=None, otp=None, **kwargs):
-        user = request.user
-        if email and otp and self.user_can_authenticate(user):
-            devices = EmailDevice.objects.filter(user=user, email=email, confirmed=True)
-            return self.authenticate_devices(devices, user, otp)
+class BaseOTPBackend(ModelBackend):
+    identity_field: str
+    device_identity_field: str
+    DeviceModel: Type[SideChannelDevice]
 
-    def authenticate_devices(self, devices, user, otp):
-        for device in devices.filter(confirmed=True):
-            if device.verify_token(otp):
-                updated_fields = []
-                if not getattr(
-                        user, api_settings.EMAIL_CONFIRMED_FIELD, True
-                ):
-                    setattr(
-                        user, api_settings.EMAIL_CONFIRMED_FIELD, True
-                    )
-                    updated_fields.append(
-                        api_settings.EMAIL_CONFIRMED_FIELD
-                    )
+    DEVICE_TAKEN_MESSAGE = "This device is already taken"
+    DEVICE_DOES_NOT_EXIST_MESSAGE = "Device does not exist"
+    LAST_DEVICE_MESSAGE = "Cannot remove the last device"
+    USER_EXISTS_MESSAGE = "User already exist"
 
-                if (
-                        api_settings.OTP_EMAIL_UPDATE
-                        and device.email
-                        and user.email != device.email
-                ):
-                    user.email = device.email
-                    updated_fields.append("email")
+    def get_device(self, **kwargs) -> Optional[SideChannelDevice]:
+        """
+        Get device by identity field
+        """
+        identity_value = kwargs.get(self.identity_field)
 
-                if updated_fields:
-                    user.save(update_fields=updated_fields)
+        device: Optional[SideChannelDevice] = self.DeviceModel._default_manager.filter(
+            **{self.device_identity_field: identity_value}
+        ).first()
 
-                return user
+        if not device:
+            # Create device if User identity_field is set
+            user = User.objects.filter(**{self.identity_field: kwargs.get(self.identity_field)}).first()
+            if user:
+                device = self.create_device(user, **kwargs)
+        return device
+
+    def get_user_devices(self, user: User) -> List[SideChannelDevice]:
+        """
+        Get all user devices
+        """
+        return self.DeviceModel._default_manager.filter(user=user)
+
+    def send_otp(self, device, **kwargs):
+        """
+        Sends OTP code to the User device
+        """
+        return device.generate_challenge()
+
+    def create_user(self, **kwargs) -> User:
+        """
+        Create User instance
+        """
+        return User._default_manager.create(
+            first_name=kwargs.get('first_name', ""),
+            last_name=kwargs.get('last_name', ""),
+        )
+
+    def create_device(self, user: User, **kwargs) -> SideChannelDevice:
+        """
+        Create Device for the User
+        """
+        return self.DeviceModel._default_manager.create(
+            user=user,
+            **{self.device_identity_field: kwargs.get(self.identity_field)}
+        )
+
+    def authenticate_device(self, device: SideChannelDevice, otp: str) -> User:
+        if not device.verify_token(otp):
             raise ValidationError(
                 _("Wrong or expired one-time password")
             )
 
-    def register(self, request=None, email=None, extra_context=None, **kwargs):
-        if not email:
-            return None
-        if self.get_users(email):
-            raise ValidationError("User with this email is already registered")
-        user, created = User._default_manager.get_or_create(
-            email=email,
-            first_name=kwargs.get("first_name", ""),
-            last_name=kwargs.get("last_name", ""),
-        )
-        return user
+        if api_settings.OTP_IDENTITY_UPDATE_FIELD:
+            self.update_user_identity_field(device)
 
-    def invite(self, email=None, **kwargs):
-        if email:
-            users = self.get_users(email)
-            return users[0] if users else self.register(email=email, **kwargs)
+        return device.user
 
+    def send_invite(self, device: SideChannelDevice):
+        device.generate_challenge()
 
-class TwilioSMSOTPBackend(ModelBackend):
-    @staticmethod
-    def get_users(phone):
-        return User.objects.filter(
-            is_active=True, twiliosmsdevice__number=phone
-        ).distinct()
+    def update_user_identity_field(self, device: SideChannelDevice):
+        if api_settings.OTP_IDENTITY_UPDATE_FIELD:
+            user = device.user
+            setattr(user, self.identity_field, getattr(device, self.device_identity_field))
+            user.save()
 
-    def authenticate(self, request=None, phone=None, otp=None, **kwargs):
-        if phone and otp:
-            for user in self.get_users(phone):
-                if self.user_can_authenticate(user):
-                    devices = TwilioSMSDevice.objects.filter(user=user)
-                    return self.authenticate_devices(devices, user, otp)
+    def is_backend_effective(self, **kwargs) -> bool:
+        """
+        Returns False if we need to skip this backend
+        """
+        return bool(kwargs.get(self.identity_field))
 
-    def generate_challenge(
-            self, request=None, user=None, phone=None, extra_context=None, **kwargs
-    ):
-        if not phone:
-            return None
+    @ensure_backend_effective
+    def register(self, **kwargs) -> Optional[User]:
+        device = self.get_device(**kwargs)
+        if device is not None:
+            if api_settings.ALLOW_REGISTER_SIGNIN:
+                self.send_otp(device, **kwargs)
+                return device.user
+            else:
+                raise ValidationError(self.USER_EXISTS_MESSAGE)
 
-        if request.user.is_authenticated:
-            device = TwilioSMSDevice.objects.filter(user=request.user, number=phone).first()
-            if not device and self.get_users(phone):
-                raise ValidationError(
-                    _("User with this phone is already exist")
-                )
-            users = [request.user]
-        else:
-            users = [user] if user else self.get_users(phone)
+        return self.create_user(**kwargs)
 
-        for user in users:
-            device = TwilioSMSDevice.objects.get_or_create(
-                user=user, number=phone
-            )[0]
-            device.generate_challenge()
-        return users[0] if users and len(users) > 0 else None
+    @ensure_backend_effective
+    def generate_challenge(self, request, **kwargs) -> Optional[User]:
+        """
+        Generate and send OTP code
+        """
 
-    def register(self, phone=None, **kwargs):
-        if phone is None:
-            return None
-
-        if self.get_users(phone):
-            raise ValidationError("User with this phone number is already registered")
-        user = User._default_manager.create(
-            first_name=kwargs.get("first_name", ""),
-            last_name=kwargs.get("last_name", ""),
-        )
-        TwilioSMSDevice.objects.get_or_create(user=user, number=phone)
-        return user
-
-    def invite(self, phone=None, **kwargs):
-        if phone:
-            users = self.get_users(phone)
-            return users[0] if users else self.register(phone=phone, **kwargs)
-
-    def authenticate_devices(self, devices, user, otp):
-        for device in devices.filter(confirmed=True):
-            if device.verify_token(otp):
-                if api_settings.PHONE_NUMBER_FIELD:
-                    setattr(user, api_settings.PHONE_NUMBER_FIELD, device.number)
-                    user.save(update_fields=[api_settings.PHONE_NUMBER_FIELD])
-                return user
-            raise ValidationError(
-                _("Wrong or expired one-time password")
-            )
-
-    def connect(self, request=None, phone=None, otp=None, **kwargs):
+        device = self.get_device(**kwargs)
         user = request.user
-        if phone and otp and self.user_can_authenticate(user):
-            devices = TwilioSMSDevice.objects.filter(user=user, number=phone, confirmed=True)
-            return self.authenticate_devices(devices, user, otp)
+
+        if device is None:
+            if not user.is_authenticated:
+                user = self.create_user(**kwargs)
+            device = self.create_device(user, **kwargs)
+        else:
+            if user.is_authenticated and user != device.user:
+                raise ValidationError(self.DEVICE_TAKEN_MESSAGE)
+
+        self.send_otp(device, **kwargs)
+        return device.user
+
+    @ensure_backend_effective
+    def authenticate(self, request, **kwargs) -> Optional[User]:
+        """
+        Check OTP and authenticate User
+        """
+        if otp := kwargs.get("otp"):
+            if device := self.get_device(**kwargs):
+                if self.user_can_authenticate(device.user):
+                    return self.authenticate_device(device, otp)
+
+    @ensure_backend_effective
+    def connect(self, request, **kwargs) -> Optional[User]:
+        """
+        Check OTP and connects Device to the User
+        """
+        return self.authenticate(request, **kwargs)
+
+    @ensure_backend_effective
+    def unlink(self, request, **kwargs):
+        device = self.get_device(**kwargs)
+        if not device:
+            raise ValidationError(self.DEVICE_DOES_NOT_EXIST_MESSAGE)
+
+        devices = self.get_user_devices(request.user)
+        if len(devices) <= 1:
+            raise ValidationError(self.LAST_DEVICE_MESSAGE)
+
+        new_device = [d for d in devices if d != device][0]
+        device.delete()
+        self.update_user_identity_field(new_device)
+        return new_device.user
+
+    @ensure_backend_effective
+    def change(self, request, **kwargs) -> User:
+        if self.connect(request, **kwargs):
+            device = self.get_device(**kwargs)
+            if device is None:
+                raise ValidationError("Cannot add new device")
+
+            for old_device in self.get_user_devices(request.user):
+                if old_device != device:
+                    old_device.delete()
+
+            return device.user
+
+    @ensure_backend_effective
+    def invite(self, request, **kwargs) -> Optional[User]:
+        if device := self.get_device(**kwargs):
+            user = device.user
+        else:
+            user = self.create_user(**kwargs)
+            device = self.create_device(user, **kwargs)
+
+        self.send_invite(device)
+        return user
+
+
+class EmailOTPBackend(BaseOTPBackend):
+    identity_field = "email"
+    device_identity_field = "email"
+    DeviceModel = EmailDevice
+
+
+class TwilioSMSOTPBackend(BaseOTPBackend):
+    identity_field = "phone_number"
+    device_identity_field = "number"
+    DeviceModel = TwilioSMSDevice
+

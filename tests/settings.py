@@ -9,9 +9,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 AUTH_USER_MODEL = "test_app.User"
 
 AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "df_auth.backends.TestEmailBackend",
     "df_auth.backends.TwilioSMSOTPBackend",
     "df_auth.backends.EmailOTPBackend",
-    "django.contrib.auth.backends.ModelBackend",
     "social_core.backends.google.GoogleOAuth2",
     "social_core.backends.facebook.FacebookOAuth2",
     "social_core.backends.apple.AppleIdAuth",
@@ -93,18 +94,18 @@ STATIC_URL = "/static/"
 ALLOWED_HOSTS = ["*"]
 
 DF_AUTH = {
-    "USER_IDENTITY_FIELDS": ("email", "phone"),
+    "USER_IDENTITY_FIELDS": ("email", "phone_number"),
     "REQUIRED_AUTH_FIELDS": (),
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
-    "TEST_USER_EMAIL": None,
-    "EMAIL_CONFIRMED_FIELD": "email_confirmed",
-    "OTP_EMAIL_UPDATE": True,
-    "PHONE_NUMBER_FIELD": "phone_number",
+    "TEST_USER_EMAIL": "a@a.aa",
+    "OTP_IDENTITY_UPDATE_FIELD": True,
+    "REGISTER_SEND_OTP": True,
 }
 
 OTP_TWILIO_ACCOUNT = os.environ.get('OTP_TWILIO_ACCOUNT', '')
 OTP_TWILIO_AUTH = os.environ.get('OTP_TWILIO_AUTH', '')
 OTP_TWILIO_FROM = os.environ.get('OTP_TWILIO_FROM', '')
+OTP_TWILIO_TOKEN_VALIDITY = 300
 
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = os.environ.get("EMAIL_PORT", "")

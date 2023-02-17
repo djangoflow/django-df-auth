@@ -3,13 +3,12 @@ from rest_framework.settings import APISettings
 
 
 DEFAULTS = {
-    "USER_IDENTITY_FIELDS": ("email",),
+    "USER_IDENTITY_FIELDS": ("email", "phone_number"),
     "REQUIRED_AUTH_FIELDS": (),
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": None,
-    "EMAIL_CONFIRMED_FIELD": "email_confirmed",
-    "OTP_EMAIL_UPDATE": True,
-    "PHONE_NUMBER_FIELD": "phone_number",
+    "OTP_IDENTITY_UPDATE_FIELD": True,
+    "REGISTER_SEND_OTP": True,
 }
 
 IMPORT_STRINGS = []

@@ -174,4 +174,12 @@ class ConnectSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin
     backend_method_name = "connect"
     user = None
 
+class UnlinkSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
+    backend_method_name = "unlink"
+    user = None
+
+
+class ChangeSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
+    backend_method_name = "change"
+    user = None
 

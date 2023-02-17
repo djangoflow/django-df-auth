@@ -1,5 +1,5 @@
 from ..permissions import IsUnauthenticated
-from .serializers import OTPObtainSerializer, InviteSerializer, ConnectSerializer
+from .serializers import OTPObtainSerializer, InviteSerializer, ConnectSerializer, ChangeSerializer, UnlinkSerializer
 from .serializers import SignupSerializer
 from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
@@ -25,11 +25,6 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
     serializer_class = TokenObtainSerializer
     response_serializer_class = TokenSerializer
     permission_classes = (permissions.AllowAny,)
-
-    @action(methods=["post"], detail=False, serializer_class=ConnectSerializer,
-            permission_classes=(permissions.IsAuthenticated,))
-    def connect(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
 
     @action(
         methods=["post"],
@@ -66,6 +61,16 @@ class SignupViewSet(ValidationOnlyCreateViewSet):
 
 class ConnectViewSet(ValidationOnlyCreateViewSet):
     serializer_class = ConnectSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+
+class UnlinkViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = UnlinkSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+
+class ChangeViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = ChangeSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
 
