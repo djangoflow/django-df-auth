@@ -26,7 +26,7 @@ class IdentitySerializerMixin(serializers.Serializer):
 
     def get_fields(self):
         return super().get_fields() | {
-            f: serializers.CharField(write_only=True, required=False)
+            f: serializers.CharField(write_only=True, required=False, allow_blank=True)
             for f in api_settings.USER_IDENTITY_FIELDS
         }
 
