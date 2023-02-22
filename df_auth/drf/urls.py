@@ -7,9 +7,14 @@ Add these to your root URLconf:
     ]
 
 """
-from .viewsets import OTPViewSet, InviteViewSet, ConnectViewSet, SignupViewSet, UnlinkViewSet, ChangeViewSet
+from .viewsets import ChangeViewSet
+from .viewsets import ConnectViewSet
+from .viewsets import InviteViewSet
+from .viewsets import OTPViewSet
+from .viewsets import SignupViewSet
 from .viewsets import SocialTokenViewSet
 from .viewsets import TokenViewSet
+from .viewsets import UnlinkViewSet
 from rest_framework.routers import DefaultRouter
 
 

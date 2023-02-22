@@ -14,6 +14,7 @@ from social_core.exceptions import AuthForbidden
 from social_django.models import DjangoStorage
 from social_django.utils import load_backend
 
+
 User = get_user_model()
 
 AUTHENTICATION_BACKENDS = [
@@ -166,13 +167,16 @@ class SignupSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin)
     backend_method_name = "register"
     user = None
 
+
 class InviteSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "invite"
     user = None
 
+
 class ConnectSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "connect"
     user = None
+
 
 class UnlinkSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "unlink"
@@ -182,4 +186,3 @@ class UnlinkSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin)
 class ChangeSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "change"
     user = None
-

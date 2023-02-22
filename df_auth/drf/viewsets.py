@@ -1,9 +1,13 @@
 from ..permissions import IsUnauthenticated
-from .serializers import OTPObtainSerializer, InviteSerializer, ConnectSerializer, ChangeSerializer, UnlinkSerializer
+from .serializers import ChangeSerializer
+from .serializers import ConnectSerializer
+from .serializers import InviteSerializer
+from .serializers import OTPObtainSerializer
 from .serializers import SignupSerializer
 from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
 from .serializers import TokenSerializer
+from .serializers import UnlinkSerializer
 from django.conf import settings
 from rest_framework import permissions
 from rest_framework import response

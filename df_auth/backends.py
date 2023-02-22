@@ -1,15 +1,20 @@
-import functools
-from typing import Optional, List, Type
-
-from django_otp.models import SideChannelDevice
-
-from .exceptions import WrongOTPError, DeviceTakenError, UserAlreadyExistError, DeviceDoesNotExistError, LastDeviceError
+from .exceptions import DeviceDoesNotExistError
+from .exceptions import DeviceTakenError
+from .exceptions import LastDeviceError
+from .exceptions import UserAlreadyExistError
+from .exceptions import WrongOTPError
 from .settings import api_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from django.core.exceptions import ValidationError
+from django_otp.models import SideChannelDevice
 from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
+from typing import List
+from typing import Optional
+from typing import Type
+
+import functools
+
 
 User = get_user_model()
 
@@ -25,7 +30,10 @@ def ensure_backend_effective(method):
 
 class TestEmailBackend(ModelBackend):
     def authenticate(self, request, **kwargs):
-        if api_settings.TEST_USER_EMAIL and kwargs.get("email") == api_settings.TEST_USER_EMAIL:
+        if (
+            api_settings.TEST_USER_EMAIL
+            and kwargs.get("email") == api_settings.TEST_USER_EMAIL
+        ):
             return User._default_manager.get(email=api_settings.TEST_USER_EMAIL)
 
 
@@ -46,7 +54,9 @@ class BaseOTPBackend(ModelBackend):
 
         if not device:
             # Create device if User identity_field is set
-            user = User.objects.filter(**{self.identity_field: kwargs.get(self.identity_field)}).first()
+            user = User.objects.filter(
+                **{self.identity_field: kwargs.get(self.identity_field)}
+            ).first()
             if user:
                 device = self.create_device(user, **kwargs)
         return device
@@ -68,8 +78,8 @@ class BaseOTPBackend(ModelBackend):
         Create User instance
         """
         return User._default_manager.create(
-            first_name=kwargs.get('first_name', ""),
-            last_name=kwargs.get('last_name', ""),
+            first_name=kwargs.get("first_name", ""),
+            last_name=kwargs.get("last_name", ""),
         )
 
     def create_device(self, user: User, **kwargs) -> SideChannelDevice:
@@ -77,8 +87,7 @@ class BaseOTPBackend(ModelBackend):
         Create Device for the User
         """
         return self.DeviceModel._default_manager.create(
-            user=user,
-            **{self.device_identity_field: kwargs.get(self.identity_field)}
+            user=user, **{self.device_identity_field: kwargs.get(self.identity_field)}
         )
 
     def authenticate_device(self, device: SideChannelDevice, otp: str) -> User:
@@ -99,7 +108,9 @@ class BaseOTPBackend(ModelBackend):
     def update_user_identity_field(self, device: SideChannelDevice):
         if api_settings.OTP_IDENTITY_UPDATE_FIELD:
             user = device.user
-            setattr(user, self.identity_field, getattr(device, self.device_identity_field))
+            setattr(
+                user, self.identity_field, getattr(device, self.device_identity_field)
+            )
             user.save()
 
     def is_backend_effective(self, **kwargs) -> bool:
@@ -206,4 +217,3 @@ class TwilioSMSOTPBackend(BaseOTPBackend):
     identity_field = "phone_number"
     device_identity_field = "number"
     DeviceModel = TwilioSMSDevice
-

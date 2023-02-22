@@ -1,5 +1,6 @@
 import os
 
+
 DEBUG = True
 
 ROOT_URLCONF = "tests.urls"
@@ -28,7 +29,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "tests.test_app.apps.TestAppConfig",
-
     "django_otp",
     "django_otp.plugins.otp_email",
     "django_otp.plugins.otp_totp",
@@ -102,9 +102,9 @@ DF_AUTH = {
     "REGISTER_SEND_OTP": False,
 }
 
-OTP_TWILIO_ACCOUNT = os.environ.get('OTP_TWILIO_ACCOUNT', '')
-OTP_TWILIO_AUTH = os.environ.get('OTP_TWILIO_AUTH', '')
-OTP_TWILIO_FROM = os.environ.get('OTP_TWILIO_FROM', '')
+OTP_TWILIO_ACCOUNT = os.environ.get("OTP_TWILIO_ACCOUNT", "")
+OTP_TWILIO_AUTH = os.environ.get("OTP_TWILIO_AUTH", "")
+OTP_TWILIO_FROM = os.environ.get("OTP_TWILIO_FROM", "")
 OTP_TWILIO_TOKEN_VALIDITY = 300
 
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
