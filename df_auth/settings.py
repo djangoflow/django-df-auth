@@ -8,7 +8,7 @@ DEFAULTS = {
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": None,
     "OTP_IDENTITY_UPDATE_FIELD": True,
-    "REGISTER_SEND_OTP": True,
+    "REGISTER_SEND_OTP": False,
 }
 
 IMPORT_STRINGS = []

@@ -9,10 +9,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 AUTH_USER_MODEL = "test_app.User"
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
     "df_auth.backends.TestEmailBackend",
     "df_auth.backends.TwilioSMSOTPBackend",
     "df_auth.backends.EmailOTPBackend",
+    "django.contrib.auth.backends.ModelBackend",
     "social_core.backends.google.GoogleOAuth2",
     "social_core.backends.facebook.FacebookOAuth2",
     "social_core.backends.apple.AppleIdAuth",
@@ -99,7 +99,7 @@ DF_AUTH = {
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": "a@a.aa",
     "OTP_IDENTITY_UPDATE_FIELD": True,
-    "REGISTER_SEND_OTP": True,
+    "REGISTER_SEND_OTP": False,
 }
 
 OTP_TWILIO_ACCOUNT = os.environ.get('OTP_TWILIO_ACCOUNT', '')

@@ -3,11 +3,11 @@ from typing import Optional, List, Type
 
 from django_otp.models import SideChannelDevice
 
+from .exceptions import WrongOTPError, DeviceTakenError, UserAlreadyExistError, DeviceDoesNotExistError, LastDeviceError
 from .settings import api_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
 
@@ -33,11 +33,6 @@ class BaseOTPBackend(ModelBackend):
     identity_field: str
     device_identity_field: str
     DeviceModel: Type[SideChannelDevice]
-
-    DEVICE_TAKEN_MESSAGE = "This device is already taken"
-    DEVICE_DOES_NOT_EXIST_MESSAGE = "Device does not exist"
-    LAST_DEVICE_MESSAGE = "Cannot remove the last device"
-    USER_EXISTS_MESSAGE = "User already exist"
 
     def get_device(self, **kwargs) -> Optional[SideChannelDevice]:
         """
@@ -88,9 +83,7 @@ class BaseOTPBackend(ModelBackend):
 
     def authenticate_device(self, device: SideChannelDevice, otp: str) -> User:
         if not device.verify_token(otp):
-            raise ValidationError(
-                _("Wrong or expired one-time password")
-            )
+            raise WrongOTPError()
 
         if api_settings.OTP_IDENTITY_UPDATE_FIELD:
             self.update_user_identity_field(device)
@@ -119,11 +112,11 @@ class BaseOTPBackend(ModelBackend):
     def register(self, **kwargs) -> Optional[User]:
         device = self.get_device(**kwargs)
         if device is not None:
-            if api_settings.ALLOW_REGISTER_SIGNIN:
+            if api_settings.REGISTER_SEND_OTP:
                 self.send_otp(device, **kwargs)
                 return device.user
             else:
-                raise ValidationError(self.USER_EXISTS_MESSAGE)
+                raise UserAlreadyExistError()
 
         return self.create_user(**kwargs)
 
@@ -142,7 +135,7 @@ class BaseOTPBackend(ModelBackend):
             device = self.create_device(user, **kwargs)
         else:
             if user.is_authenticated and user != device.user:
-                raise ValidationError(self.DEVICE_TAKEN_MESSAGE)
+                raise DeviceTakenError()
 
         self.send_otp(device, **kwargs)
         return device.user
@@ -168,11 +161,11 @@ class BaseOTPBackend(ModelBackend):
     def unlink(self, request, **kwargs):
         device = self.get_device(**kwargs)
         if not device:
-            raise ValidationError(self.DEVICE_DOES_NOT_EXIST_MESSAGE)
+            raise DeviceDoesNotExistError()
 
         devices = self.get_user_devices(request.user)
         if len(devices) <= 1:
-            raise ValidationError(self.LAST_DEVICE_MESSAGE)
+            raise LastDeviceError()
 
         new_device = [d for d in devices if d != device][0]
         device.delete()
@@ -183,8 +176,7 @@ class BaseOTPBackend(ModelBackend):
     def change(self, request, **kwargs) -> User:
         if self.connect(request, **kwargs):
             device = self.get_device(**kwargs)
-            if device is None:
-                raise ValidationError("Cannot add new device")
+            assert device is not None
 
             for old_device in self.get_user_devices(request.user):
                 if old_device != device:
