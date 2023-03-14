@@ -142,7 +142,10 @@ class BaseOTPBackend(ModelBackend):
 
         if device is None:
             if not user.is_authenticated:
-                user = self.create_user(**kwargs)
+                if api_settings.SIGNIN_AUTOCREATE_ACCOUNT:
+                    user = self.create_user(**kwargs)
+                else:
+                    return None
             device = self.create_device(user, **kwargs)
         else:
             if user.is_authenticated and user != device.user:
