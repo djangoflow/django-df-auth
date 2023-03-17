@@ -73,7 +73,7 @@ class BaseOTPBackend(ModelBackend):
         """
         return device.generate_challenge()
 
-    def create_user(self, **kwargs) -> User:
+    def create_user(self, request, **kwargs) -> User:
         """
         Create User instance
         """
@@ -120,7 +120,7 @@ class BaseOTPBackend(ModelBackend):
         return bool(kwargs.get(self.identity_field))
 
     @ensure_backend_effective
-    def register(self, **kwargs) -> Optional[User]:
+    def register(self, request, **kwargs) -> Optional[User]:
         device = self.get_device(**kwargs)
         if device is not None:
             if api_settings.REGISTER_SEND_OTP:
@@ -129,7 +129,7 @@ class BaseOTPBackend(ModelBackend):
             else:
                 raise UserAlreadyExistError()
 
-        return self.create_user(**kwargs)
+        return self.create_user(request, **kwargs)
 
     @ensure_backend_effective
     def generate_challenge(self, request, **kwargs) -> Optional[User]:
@@ -143,7 +143,7 @@ class BaseOTPBackend(ModelBackend):
         if device is None:
             if not user.is_authenticated:
                 if api_settings.SIGNIN_AUTOCREATE_ACCOUNT:
-                    user = self.create_user(**kwargs)
+                    user = self.create_user(request, **kwargs)
                 else:
                     return None
             device = self.create_device(user, **kwargs)
@@ -203,7 +203,7 @@ class BaseOTPBackend(ModelBackend):
         if device := self.get_device(**kwargs):
             user = device.user
         else:
-            user = self.create_user(**kwargs)
+            user = self.create_user(request, **kwargs)
             device = self.create_device(user, **kwargs)
 
         self.send_invite(request.user, device)
