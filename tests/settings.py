@@ -17,6 +17,7 @@ AUTHENTICATION_BACKENDS = [
     "social_core.backends.google.GoogleOAuth2",
     "social_core.backends.facebook.FacebookOAuth2",
     "social_core.backends.apple.AppleIdAuth",
+    "social_core.backends.twitter.TwitterOAuth",
 ]
 
 INSTALLED_APPS = [
@@ -112,3 +113,6 @@ EMAIL_PORT = os.environ.get("EMAIL_PORT", "")
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "")
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+
+SOCIAL_AUTH_TWITTER_KEY = os.environ.get("SOCIAL_AUTH_TWITTER_KEY", "")
+SOCIAL_AUTH_TWITTER_SECRET = os.environ.get("SOCIAL_AUTH_TWITTER_SECRET", "")

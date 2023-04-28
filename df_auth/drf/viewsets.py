@@ -4,6 +4,7 @@ from .serializers import ConnectSerializer
 from .serializers import InviteSerializer
 from .serializers import OTPObtainSerializer
 from .serializers import SignupSerializer
+from .serializers import SocialOAuth1TokenObtainSerializer
 from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
 from .serializers import TokenSerializer
@@ -98,6 +99,21 @@ class SocialTokenViewSet(ValidationOnlyCreateViewSet):
         methods=["post"],
         detail=False,
         serializer_class=SocialTokenObtainSerializer,
+        permission_classes=(permissions.IsAuthenticated,),
+    )
+    def connect(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class SocialOAuth1TokenViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = SocialOAuth1TokenObtainSerializer
+    response_serializer_class = TokenSerializer
+    permission_classes = (IsUnauthenticated,)
+
+    @action(
+        methods=["post"],
+        detail=False,
+        serializer_class=SocialOAuth1TokenObtainSerializer,
         permission_classes=(permissions.IsAuthenticated,),
     )
     def connect(self, request, *args, **kwargs):
