@@ -155,6 +155,20 @@ class BaseOTPBackend(ModelBackend):
         return device.user
 
     @ensure_backend_effective
+    def set_password(self, request, **kwargs) -> Optional[User]:
+        """
+        Set password for the User
+        """
+        if (otp := kwargs.get("otp")) and (password := kwargs.get("password")):
+            if (device := self.get_device(**kwargs)) and self.user_can_authenticate(
+                device.user
+            ):
+                if user := self.authenticate_device(device, otp):
+                    user.set_password(password)
+                    user.save()
+                    return user
+
+    @ensure_backend_effective
     def authenticate(self, request, **kwargs) -> Optional[User]:
         """
         Check OTP and authenticate User

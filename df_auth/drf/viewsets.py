@@ -3,6 +3,7 @@ from .serializers import ChangeSerializer
 from .serializers import ConnectSerializer
 from .serializers import InviteSerializer
 from .serializers import OTPObtainSerializer
+from .serializers import SetPasswordSerializer
 from .serializers import SignupSerializer
 from .serializers import SocialTokenObtainSerializer
 from .serializers import TokenObtainSerializer
@@ -86,6 +87,11 @@ class InviteViewSet(ValidationOnlyCreateViewSet):
 class OTPViewSet(ValidationOnlyCreateViewSet):
     throttle_scope = "otp"
     serializer_class = OTPObtainSerializer
+    permission_classes = (permissions.AllowAny,)
+
+
+class SetPasswordViewSet(ValidationOnlyCreateViewSet):
+    serializer_class = SetPasswordSerializer
     permission_classes = (permissions.AllowAny,)
 
 

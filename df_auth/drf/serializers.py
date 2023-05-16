@@ -186,3 +186,8 @@ class UnlinkSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin)
 class ChangeSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "change"
     user = None
+
+
+class SetPasswordSerializer(AuthBackendSerializerMixin):
+    backend_method_name = "set_password"
+    user = None
