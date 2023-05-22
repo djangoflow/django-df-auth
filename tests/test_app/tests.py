@@ -7,15 +7,10 @@ from df_auth.drf.serializers import TokenObtainSerializer
 from df_auth.drf.serializers import OTPObtainSerializer
 from df_auth.drf.serializers import SignupSerializer
 from df_auth.drf.serializers import InviteSerializer
-from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
 
 User = get_user_model()
 
 pytestmark = [pytest.mark.django_db]
-
-
-def test_dummy():
-    assert 1 == 1
 
 
 def test_token_create_serializer_get_token():
