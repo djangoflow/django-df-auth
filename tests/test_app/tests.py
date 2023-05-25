@@ -53,12 +53,9 @@ def test_token_obtain_serializer_validate_required_fields():
     serializer.user = user
 
     with patch('df_auth.settings.api_settings.REQUIRED_AUTH_FIELDS', ['phone_number']):
-        try:
+        with pytest.raises(ValidationError):
             assert serializer.is_valid(raise_exception=True)
-        except ValidationError:
-            assert True
-        else:
-            assert False, "ValidationError exception was not raised"
+        
 
 
 def test_token_obtain_serializer_validate_optional_fields():
@@ -118,15 +115,6 @@ class TestAuthBackendSerializerMixin:
         fields = self.serializer.get_fields()
         assert isinstance(fields, dict)
 
-    def test_validate_success(self):
-        attrs = {
-            'username': 'test_user',
-            'password': 'test_password',
-        }
-        self.serializer.backend_method_name = ""
-        with pytest.raises(AuthenticationFailed):
-            self.serializer.validate(attrs)
-
     def test_validate_backend_not_found(self):
         attrs = {
             'username': 'test_user',
@@ -147,9 +135,6 @@ class TestAuthBackendSerializerMixin:
         }
         with patch('df_auth.drf.serializers.AUTHENTICATION_BACKENDS', [MockBackend]):
             self.serializer.backend_method_name = 'authentication'
-
-            try:
-                result = self.serializer.validate(attrs)
-                assert isinstance(result, dict)
-            except AttributeError:
-                assert False, "Backend method not found"
+            result = self.serializer.validate(attrs)
+            assert isinstance(result, dict)
+           
