@@ -13,6 +13,7 @@ from .viewsets import InviteViewSet
 from .viewsets import OTPViewSet
 from .viewsets import SetPasswordViewSet
 from .viewsets import SignupViewSet
+from .viewsets import SocialOAuth1TokenViewSet
 from .viewsets import SocialTokenViewSet
 from .viewsets import TokenViewSet
 from .viewsets import UnlinkViewSet
@@ -29,5 +30,6 @@ router.register("signup", SignupViewSet, basename="signup")
 router.register("otp", OTPViewSet, basename="otp")
 router.register("set-password", SetPasswordViewSet, basename="set-password")
 router.register("social", SocialTokenViewSet, basename="social")
+router.register("social/oauth1", SocialOAuth1TokenViewSet, basename="social_oauth1")
 
 urlpatterns = router.urls

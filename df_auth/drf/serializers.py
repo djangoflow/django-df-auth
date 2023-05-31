@@ -1,10 +1,11 @@
 from ..settings import api_settings
 from ..strategy import DRFStrategy
-from django.conf import settings
+from df_auth.contants import AUTHENTICATION_BACKENDS
+from df_auth.contants import OAUTH1_BACKENDS_CHOICES
+from df_auth.contants import OAUTH2_BACKENDS_CHOICES
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
-from django.utils.module_loading import import_string
 from itertools import chain
 from rest_framework import exceptions
 from rest_framework import serializers
@@ -16,10 +17,6 @@ from social_django.utils import load_backend
 
 
 User = get_user_model()
-
-AUTHENTICATION_BACKENDS = [
-    import_string(backend) for backend in settings.AUTHENTICATION_BACKENDS
-]
 
 
 class IdentitySerializerMixin(serializers.Serializer):
@@ -125,28 +122,35 @@ class FirstLastNameSerializerMixin(serializers.Serializer):
     last_name = serializers.CharField(required=False)
 
 
-class SocialTokenObtainSerializer(FirstLastNameSerializerMixin, TokenCreateSerializer):
-    access_token = serializers.CharField(write_only=True)
-    provider = serializers.ChoiceField(
-        choices=[
-            (backend.name, backend.name)
-            for backend in AUTHENTICATION_BACKENDS
-            if hasattr(backend, "name")
-        ],
-    )
+class SocialTokenObtainBaseSerializer(
+    FirstLastNameSerializerMixin, TokenCreateSerializer
+):
+    """Base serializer for obtaining social tokens."""
 
     response = serializers.JSONField(read_only=True)
 
     def validate(self, attrs):
+        """Validate the serializer input and obtain the social token."""
         request = self.context["request"]
         user = request.user if request.user.is_authenticated else None
         request.social_strategy = DRFStrategy(DjangoStorage, request)
+        access_token = attrs.get("access_token")
+
+        # Construct access token dictionary for OAuth1
+        if isinstance(self, SocialOAuth1TokenObtainSerializer):
+            oauth_token = attrs["oauth_token"]
+            oauth_token_secret = attrs["oauth_token_secret"]
+            access_token = {
+                "oauth_token": oauth_token,
+                "oauth_token_secret": oauth_token_secret,
+            }
+
         request.backend = load_backend(
             request.social_strategy, attrs["provider"], redirect_uri=None
         )
 
         try:
-            self.user = request.backend.do_auth(attrs["access_token"], user=user)
+            self.user = request.backend.do_auth(access_token, user=user)
         except (AuthCanceled, AuthForbidden):
             raise exceptions.AuthenticationFailed()
 
@@ -161,6 +165,21 @@ class SocialTokenObtainSerializer(FirstLastNameSerializerMixin, TokenCreateSeria
             self.user.save(update_fields=update_fields)
 
         return super().validate(attrs)
+
+
+class SocialTokenObtainSerializer(SocialTokenObtainBaseSerializer):
+    """Serializer for obtaining social tokens for OAuth2."""
+
+    provider = serializers.ChoiceField(choices=OAUTH2_BACKENDS_CHOICES)
+    access_token = serializers.CharField(write_only=True)
+
+
+class SocialOAuth1TokenObtainSerializer(SocialTokenObtainBaseSerializer):
+    """Serializer for obtaining social tokens for OAuth1."""
+
+    provider = serializers.ChoiceField(choices=OAUTH1_BACKENDS_CHOICES)
+    oauth_token = serializers.CharField(write_only=True)
+    oauth_token_secret = serializers.CharField(write_only=True)
 
 
 class SignupSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):

@@ -93,6 +93,7 @@ Identity provider support
 * Facebook
 * Apple
 * OTP
+* Twitter
 
 Other modules and links out there
 ---------------------------------
