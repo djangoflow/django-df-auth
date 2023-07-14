@@ -18,6 +18,10 @@ class DeviceTakenError(DfAuthError):
     default_detail = _("This device is already taken")
 
 
+class InvalidPhoneNumberError(DfAuthError):
+    default_detail = _("Invalid phone number")
+
+
 class DeviceDoesNotExistError(DfAuthError):
     default_detail = _("Device does not exist")
 

@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "django_otp.plugins.otp_static",
     "otp_twilio",
     "social_django",
+    "df_auth",
 ]
 
 MIDDLEWARE = [

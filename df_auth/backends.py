@@ -1,8 +1,10 @@
 from .exceptions import DeviceDoesNotExistError
 from .exceptions import DeviceTakenError
+from .exceptions import InvalidPhoneNumberError
 from .exceptions import LastDeviceError
 from .exceptions import UserAlreadyExistError
 from .exceptions import WrongOTPError
+from .models import PhoneNumberRule
 from .settings import api_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
@@ -234,3 +236,9 @@ class TwilioSMSOTPBackend(BaseOTPBackend):
     identity_field = "phone_number"
     device_identity_field = "number"
     DeviceModel = TwilioSMSDevice
+
+    def send_otp(self, device: TwilioSMSDevice, **kwargs):
+        if not PhoneNumberRule.check_number(device.number):
+            raise InvalidPhoneNumberError()
+
+        return super().send_otp(device, **kwargs)
