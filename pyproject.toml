@@ -1,3 +1,61 @@
 [build-system]
-requires = ['setuptools>=40.8.0', 'wheel']
-build-backend = 'setuptools.build_meta:__legacy__'
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "django-df-auth"
+description = "Opinionated Django REST auth endpoints for JWT authentication and social accounts."
+readme = "README.md"
+version = "1.0.0"
+authors = [
+    { name = "Apexive OSS", email = "open-source@apexive.com" },
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 3.2",
+    "Framework :: Django :: 4.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Internet",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "Django>4",
+    "djangorestframework>=3",
+    "djangorestframework-simplejwt",
+    "django-otp",
+    "django-otp-twilio", #should be optional
+    "twilio", # should optional
+    "social-auth-app-django" # might be optional
+]
+
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+#twilio = [
+#    "django-otp",
+#    "django-otp-twilio",
+#    "twilio",
+#]
+#social = [
+#    "social-auth-app-django"
+#]
+tests = [
+    "pytest",
+    "pytest-django>=4.5"
+]
+
+[project.urls]
+Homepage = "https://apexive.com/"
+
+[tool.pytest.ini_options]
+python_files = "tests.py test_*.py"
+DJANGO_SETTINGS_MODULE = "tests.settings"
