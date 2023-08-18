@@ -60,10 +60,16 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
         return self.create(request, *args, **kwargs)
 
 
-class SignupViewSet(ValidationOnlyCreateViewSet):
+class UserViewSet(ValidationOnlyCreateViewSet):
     serializer_class = SignupSerializer
     permission_classes = (permissions.AllowAny,)
 
+
+        # signup = create?
+    # invite
+    # update = change password
+        # change_password = update
+        # reset_password ?
 
 class ConnectViewSet(ValidationOnlyCreateViewSet):
     serializer_class = ConnectSerializer

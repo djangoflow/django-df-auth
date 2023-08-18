@@ -202,9 +202,10 @@ class UnlinkSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin)
     user = None
 
 
-class ChangeSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
-    backend_method_name = "change"
-    user = None
+# incredibly confusing
+# class ChangeSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
+#     backend_method_name = "change"
+#     user = None
 
 
 class SetPasswordSerializer(AuthBackendSerializerMixin):
