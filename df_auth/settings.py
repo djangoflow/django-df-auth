@@ -9,7 +9,8 @@ DEFAULTS = {
     "TEST_USER_EMAIL": None,
     "OTP_IDENTITY_UPDATE_FIELD": True,
     "REGISTER_SEND_OTP": False,
-    "SIGNIN_AUTOCREATE_ACCOUNT": True,
+    # Must be removed and implemented project level by overriding backend?
+    # "SIGNIN_AUTOCREATE_ACCOUNT": True,
 }
 
 IMPORT_STRINGS = []
