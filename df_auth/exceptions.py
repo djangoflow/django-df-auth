@@ -4,10 +4,14 @@ from rest_framework.exceptions import ValidationError
 
 class DfAuthError(ValidationError):
     # TODO add codes
+    # TODO add use cases documentation
     default_detail = _("Authentication error")
 
 
 class WrongOTPError(DfAuthError):
+    """
+    This exception is used when.... (TODO: rishab)
+    """
     default_detail = _("Wrong or expired one-time password")
 
 
