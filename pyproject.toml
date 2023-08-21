@@ -1,32 +1,26 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-
 [project]
 name = "django-df-auth"
+version = "1.0.0"
 description = "Opinionated Django REST auth endpoints for JWT authentication and social accounts."
 readme = "README.md"
-version = "1.0.0"
-authors = [
-    { name = "Apexive OSS", email = "open-source@apexive.com" },
-]
+authors = [{name = "Apexive OSS", email = "open-source@apexive.com"}]
+license = { file = "LICENSE" }
 classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
-    "Framework :: Django :: 3.2",
-    "Framework :: Django :: 4.0",
+    "Framework :: Django :: 4.2",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
-    "Topic :: Internet",
+    "Topic :: Internet"
 ]
 requires-python = ">=3.9"
+urls = { homepage = "https://apexive.com/" }
+
 dependencies = [
     "Django>4",
     "djangorestframework>=3",
@@ -37,25 +31,88 @@ dependencies = [
     "social-auth-app-django" # might be optional
 ]
 
-license = { text = "MIT" }
-
 [project.optional-dependencies]
-#twilio = [
-#    "django-otp",
-#    "django-otp-twilio",
-#    "twilio",
-#]
-#social = [
-#    "social-auth-app-django"
-#]
-tests = [
+test = [
     "pytest",
-    "pytest-django>=4.5"
+    "pytest-django",
+    "django-stubs",
+    "mypy==1.5.0",
+    "black==23.7.0",
+    "ruff==0.0.284"
 ]
 
-[project.urls]
-Homepage = "https://apexive.com/"
+[build-system]
+requires = ['setuptools>=68.1.0', 'wheel']
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools]
+include-package-data = true
+packages = ["df_auth"]
+
+
+[tools.black]
+max-line-length = 88
+
+
+[tool.ruff]
+line-length = 79
+fix = true
+
+
+# Enable Flake's "E" and "F" codes by default.
+select = ["E", "F", "I", "W", "A", "B", "Q", "C", "S"]
+
+ignore = ["B008", "E501", "S101", "A003"]
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    'static',
+    'migrations',
+    '__pycache__',
+    '.pytest_cache',
+    '__init__.py',
+]
+
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.9.x
+target-version = "py39"
+
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["S105", "S106"]
+
+[tool.mypy]
+
+ignore_missing_imports = true
+disable_error_code = "attr-defined, valid-type"
+disallow_untyped_defs = true
+mypy_path = "df_auth"
+exclude = "venv|migrations|build|dist|docs"
+
 
 [tool.pytest.ini_options]
+
 python_files = "tests.py test_*.py"
 DJANGO_SETTINGS_MODULE = "tests.settings"

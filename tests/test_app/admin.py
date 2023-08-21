@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from tests.test_app.models import User
 
 

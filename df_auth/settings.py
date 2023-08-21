@@ -1,6 +1,7 @@
+from typing import List
+
 from django.conf import settings
 from rest_framework.settings import APISettings
-
 
 DEFAULTS = {
     "USER_IDENTITY_FIELDS": ("email", "phone_number"),
@@ -13,6 +14,6 @@ DEFAULTS = {
     # "SIGNIN_AUTOCREATE_ACCOUNT": True,
 }
 
-IMPORT_STRINGS = []
+IMPORT_STRINGS: List[str] = []
 
 api_settings = APISettings(getattr(settings, "DF_AUTH", IMPORT_STRINGS), DEFAULTS)

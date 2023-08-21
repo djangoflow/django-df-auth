@@ -1,8 +1,13 @@
+from typing import Any
+
 from django.conf import settings
+from django.http import HttpRequest, HttpResponse
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
-from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
+from rest_framework_simplejwt.settings import (
+    api_settings as simple_jwt_settings,
+)
 
 from ..permissions import IsUnauthenticated
 from .serializers import (
@@ -20,7 +25,7 @@ from .serializers import (
 
 
 class ValidationOnlyCreateViewSet(viewsets.GenericViewSet):
-    def create(self, request, *args, **kwargs):
+    def create(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return response.Response(serializer.data, status=status.HTTP_200_OK)
@@ -36,7 +41,7 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
         detail=False,
         serializer_class=import_string(simple_jwt_settings.TOKEN_REFRESH_SERIALIZER),
     )
-    def refresh(self, request, *args, **kwargs):
+    def refresh(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return self.create(request, *args, **kwargs)
 
     @action(
@@ -44,7 +49,7 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
         detail=False,
         serializer_class=import_string(simple_jwt_settings.TOKEN_VERIFY_SERIALIZER),
     )
-    def verify(self, request, *args, **kwargs):
+    def verify(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return self.create(request, *args, **kwargs)
 
     @action(
@@ -52,7 +57,9 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
         detail=False,
         serializer_class=import_string(simple_jwt_settings.TOKEN_BLACKLIST_SERIALIZER),
     )
-    def blacklist(self, request, *args, **kwargs):
+    def blacklist(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
         if "rest_framework_simplejwt.token_blacklist" not in settings.INSTALLED_APPS:
             raise NotImplementedError
 
@@ -107,7 +114,7 @@ class SocialTokenViewSet(ValidationOnlyCreateViewSet):
         serializer_class=SocialTokenObtainSerializer,
         permission_classes=(permissions.IsAuthenticated,),
     )
-    def connect(self, request, *args, **kwargs):
+    def connect(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return self.create(request, *args, **kwargs)
 
 
@@ -122,5 +129,5 @@ class SocialOAuth1TokenViewSet(ValidationOnlyCreateViewSet):
         serializer_class=SocialOAuth1TokenObtainSerializer,
         permission_classes=(permissions.IsAuthenticated,),
     )
-    def connect(self, request, *args, **kwargs):
+    def connect(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return self.create(request, *args, **kwargs)

@@ -14,11 +14,11 @@ The module is a glue and uses:
 The module also provides very limited extra functionality to the packages above:
 
 - otp devices management OTPDeviceViewSet
-    - Create, Delete   
+    - Create, Delete
 - user registration and invitation methods and template
     - standard User fields = first_name, last_name, email, phone
     - extra User fields / serializer override in settings
-    - 
+    -
 - phone number white/black listing rules (to be removed?) => registration identity blacklist?
 
 Blacklisting:

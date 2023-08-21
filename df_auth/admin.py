@@ -1,5 +1,6 @@
-from df_auth.models import PhoneNumberRule
 from django.contrib import admin
+
+from df_auth.models import PhoneNumberRule
 
 
 @admin.register(PhoneNumberRule)

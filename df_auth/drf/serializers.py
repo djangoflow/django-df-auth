@@ -1,9 +1,12 @@
 from itertools import chain
+from typing import Any, Dict, Optional
 
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.models import update_last_login
+from django.contrib.auth.models import AbstractUser, update_last_login
 from rest_framework import exceptions, serializers
-from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
+from rest_framework_simplejwt.settings import (
+    api_settings as simplejwt_settings,
+)
 from social_core.exceptions import AuthCanceled, AuthForbidden
 from social_django.models import DjangoStorage
 from social_django.utils import load_backend
@@ -23,13 +26,13 @@ User = get_user_model()
 class IdentitySerializerMixin(serializers.Serializer):
     user = None
 
-    def get_fields(self):
+    def get_fields(self) -> Dict[str, serializers.Field]:
         return super().get_fields() | {
             f: serializers.CharField(write_only=True, required=False, allow_blank=True)
             for f in api_settings.USER_IDENTITY_FIELDS
         }
 
-    def validate_email(self, value):
+    def validate_email(self, value: str) -> None:
         return User.objects.normalize_email(value)
 
 
@@ -41,10 +44,10 @@ class TokenSerializer(serializers.Serializer):
 
 class TokenCreateSerializer(TokenSerializer):
     @classmethod
-    def get_token(cls, user):
+    def get_token(cls, user: AbstractUser) -> None:
         return cls.token_class.for_user(user)
 
-    def validate(self, attrs):
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
             raise exceptions.AuthenticationFailed()
 
@@ -59,7 +62,7 @@ class TokenCreateSerializer(TokenSerializer):
 
 
 class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
-    def validate(self, attrs):
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Remove empty values to pass to authenticate or send_otp
         """
@@ -67,7 +70,7 @@ class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
         self.user = authenticate(**attrs, **self.context)
         return super().validate(attrs)
 
-    def get_fields(self):
+    def get_fields(self) -> Dict[str, serializers.Field]:
         fields = super().get_fields()
         if api_settings.REQUIRED_AUTH_FIELDS:
             fields.update(
@@ -88,10 +91,10 @@ class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
 
 
 class AuthBackendSerializerMixin(IdentitySerializerMixin):
-    backend_method_name = None
-    backend_extra_kwargs = {}
+    backend_method_name: Optional[str] = None
+    backend_extra_kwargs: Dict[str, Any] = {}
 
-    def get_fields(self):
+    def get_fields(self) -> Dict[str, serializers.Field]:
         return super().get_fields() | {
             f: serializers.CharField(write_only=True, required=False)
             for f in chain(
@@ -99,11 +102,11 @@ class AuthBackendSerializerMixin(IdentitySerializerMixin):
             )
         }
 
-    def validate(self, attrs):
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         attrs = {k: v for k, v in attrs.items() if v}
         attrs = super().validate(attrs)
         for backend in AUTHENTICATION_BACKENDS:
-            if hasattr(backend, self.backend_method_name):
+            if self.backend_method_name and hasattr(backend, self.backend_method_name):
                 self.user = getattr(backend(), self.backend_method_name)(
                     **attrs, **self.backend_extra_kwargs, **self.context
                 )
@@ -130,7 +133,7 @@ class SocialTokenObtainBaseSerializer(
 
     response = serializers.JSONField(read_only=True)
 
-    def validate(self, attrs):
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """Validate the serializer input and obtain the social token."""
         request = self.context["request"]
         user = request.user if request.user.is_authenticated else None
@@ -152,8 +155,8 @@ class SocialTokenObtainBaseSerializer(
 
         try:
             self.user = request.backend.do_auth(access_token, user=user)
-        except (AuthCanceled, AuthForbidden):
-            raise exceptions.AuthenticationFailed()
+        except (AuthCanceled, AuthForbidden) as e:
+            raise exceptions.AuthenticationFailed() from e
 
         update_fields = []
         for attr in ("first_name", "last_name"):

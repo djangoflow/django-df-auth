@@ -1,18 +1,22 @@
-from df_auth.drf.serializers import SocialOAuth1TokenObtainSerializer
-from df_auth.drf.serializers import SocialTokenObtainSerializer
-from df_auth.drf.viewsets import SocialOAuth1TokenViewSet
-from df_auth.strategy import DRFStrategy
+import json
+from typing import Any
+from unittest.mock import MagicMock, patch
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from rest_framework.test import APIRequestFactory
-from rest_framework.test import APITestCase
-from rest_framework.test import force_authenticate
+from rest_framework.test import (
+    APIRequestFactory,
+    APITestCase,
+    force_authenticate,
+)
 from social_django.models import DjangoStorage
-from unittest.mock import MagicMock
-from unittest.mock import patch
 
-import json
-
+from df_auth.drf.serializers import (
+    SocialOAuth1TokenObtainSerializer,
+    SocialTokenObtainSerializer,
+)
+from df_auth.drf.viewsets import SocialOAuth1TokenViewSet
+from df_auth.strategy import DRFStrategy
 
 User = get_user_model()
 
@@ -20,7 +24,7 @@ User = get_user_model()
 class SocialTokenObtainSerializerTests(APITestCase):
     """Tests for the SocialTokenObtainSerializer serializer."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up the test case by creating necessary test data and objects."""
         self.user = User.objects.create_user(
             email="testuser@example.com", password="testpassword"
@@ -35,7 +39,7 @@ class SocialTokenObtainSerializerTests(APITestCase):
         self.serializer = SocialTokenObtainSerializer
 
     @patch("df_auth.drf.serializers.load_backend")
-    def test_valid_data_oauth2(self, load_backend_mock):
+    def test_valid_data_oauth2(self, load_backend_mock: Any) -> None:
         """Test that a valid social access token can be used to authenticate a user."""
         provider = "facebook"
 
@@ -68,7 +72,7 @@ class SocialTokenObtainSerializerTests(APITestCase):
 class SocialOAuth1TokenObtainSerializerTests(APITestCase):
     """Tests for the SocialTokenObtainSerializer serializer."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up the test case by creating necessary test data and objects."""
         self.user = User.objects.create_user(
             email="testuser@example.com", password="testpassword"
@@ -82,7 +86,7 @@ class SocialOAuth1TokenObtainSerializerTests(APITestCase):
         self.serializer = SocialOAuth1TokenObtainSerializer
 
     @patch("df_auth.drf.serializers.load_backend")
-    def test_valid_data_oauth1(self, load_backend_mock):
+    def test_valid_data_oauth1(self, load_backend_mock: Any) -> None:
         """Test that a valid social oauth_token and oauth_token_secret can be used to authenticate a user."""
         provider = "twitter"
         oauth_token = "test"
@@ -117,7 +121,7 @@ class SocialOAuth1TokenObtainSerializerTests(APITestCase):
 
 
 class SocialOAuth1TokenViewSetTests(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.basic_user_info = {
             "email": "test@gmail.com",
             "first_name": "John",
@@ -132,7 +136,7 @@ class SocialOAuth1TokenViewSetTests(APITestCase):
             "provider": self.provider,
         }
 
-    def test_connect_authenticated(self):
+    def test_connect_authenticated(self) -> None:
         """Test an aunthenticated user accessing the endpoint."""
         request = self.factory.post(
             reverse("social_oauth1-connect"), data=self.data, format="json"
@@ -142,7 +146,7 @@ class SocialOAuth1TokenViewSetTests(APITestCase):
         self.assertEqual(response.status_code, 403)
 
     @patch("df_auth.drf.serializers.load_backend")
-    def test_connect_unauthenticated(self, mock_load_backend):
+    def test_connect_unauthenticated(self, mock_load_backend: Any) -> None:
         """Test an unauthenticated user accessing the endpoint."""
         # Mock return values.
         backend = MagicMock(name=self.provider)

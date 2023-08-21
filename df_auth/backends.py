@@ -1,29 +1,30 @@
-from .exceptions import DeviceDoesNotExistError
-from .exceptions import DeviceTakenError
-from .exceptions import InvalidPhoneNumberError
-from .exceptions import LastDeviceError
-from .exceptions import UserAlreadyExistError
-from .exceptions import WrongOTPError
-from .models import PhoneNumberRule
-from .settings import api_settings
+import functools
+from typing import Any, List, Optional, Type
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from django_otp.models import SideChannelDevice
+from django.http import HttpRequest
+from django_otp.models import Device, SideChannelDevice
 from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
-from typing import List
-from typing import Optional
-from typing import Type
 
-import functools
-
+from .exceptions import (
+    DeviceDoesNotExistError,
+    DeviceTakenError,
+    InvalidPhoneNumberError,
+    LastDeviceError,
+    UserAlreadyExistError,
+    WrongOTPError,
+)
+from .models import PhoneNumberRule
+from .settings import api_settings
 
 User = get_user_model()
 
 
-def ensure_backend_effective(method):
+def ensure_backend_effective(method: Any) -> Any:
     @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         if self.is_backend_effective(**kwargs):
             return method(self, *args, **kwargs)
 
@@ -31,12 +32,14 @@ def ensure_backend_effective(method):
 
 
 class TestEmailBackend(ModelBackend):
-    def authenticate(self, request, **kwargs):
+    def authenticate(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         if (
             api_settings.TEST_USER_EMAIL
             and kwargs.get("email") == api_settings.TEST_USER_EMAIL
         ):
             return User._default_manager.get(email=api_settings.TEST_USER_EMAIL)
+
+        return None
 
 
 class BaseOTPBackend(ModelBackend):
@@ -44,7 +47,7 @@ class BaseOTPBackend(ModelBackend):
     device_identity_field: str
     DeviceModel: Type[SideChannelDevice]
 
-    def get_device(self, **kwargs) -> Optional[SideChannelDevice]:
+    def get_device(self, **kwargs: Any) -> Optional[SideChannelDevice]:
         """
         Get device by identity field
         """
@@ -69,13 +72,13 @@ class BaseOTPBackend(ModelBackend):
         """
         return self.DeviceModel._default_manager.filter(user=user)
 
-    def send_otp(self, device, **kwargs):
+    def send_otp(self, device: Device, **kwargs: Any) -> Optional[str]:
         """
         Sends OTP code to the User device
         """
         return device.generate_challenge()
 
-    def create_user(self, request, **kwargs) -> User:
+    def create_user(self, request: HttpRequest, **kwargs: Any) -> User:
         """
         Create User instance
         """
@@ -84,7 +87,7 @@ class BaseOTPBackend(ModelBackend):
             last_name=kwargs.get("last_name", ""),
         )
 
-    def create_device(self, user: User, **kwargs) -> SideChannelDevice:
+    def create_device(self, user: User, **kwargs: Any) -> SideChannelDevice:
         """
         Create Device for the User
         """
@@ -101,13 +104,13 @@ class BaseOTPBackend(ModelBackend):
 
         return device.user
 
-    def send_invite(self, user: User, device: SideChannelDevice):
+    def send_invite(self, user: User, device: SideChannelDevice) -> None:
         """
         the User invites device.User to join
         """
         device.generate_challenge()
 
-    def update_user_identity_field(self, device: SideChannelDevice):
+    def update_user_identity_field(self, device: SideChannelDevice) -> None:
         if api_settings.OTP_IDENTITY_UPDATE_FIELD:
             user = device.user
             setattr(
@@ -115,14 +118,14 @@ class BaseOTPBackend(ModelBackend):
             )
             user.save()
 
-    def is_backend_effective(self, **kwargs) -> bool:
+    def is_backend_effective(self, **kwargs: Any) -> bool:
         """
         Returns False if we need to skip this backend
         """
         return bool(kwargs.get(self.identity_field))
 
     @ensure_backend_effective
-    def register(self, request, **kwargs) -> Optional[User]:
+    def register(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         device = self.get_device(**kwargs)
         if device is not None:
             if api_settings.REGISTER_SEND_OTP:
@@ -134,7 +137,7 @@ class BaseOTPBackend(ModelBackend):
         return self.create_user(request, **kwargs)
 
     @ensure_backend_effective
-    def generate_challenge(self, request, **kwargs) -> Optional[User]:
+    def generate_challenge(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         """
         Generate and send OTP code
         """
@@ -157,7 +160,7 @@ class BaseOTPBackend(ModelBackend):
         return device.user
 
     @ensure_backend_effective
-    def set_password(self, request, **kwargs) -> Optional[User]:
+    def set_password(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         """
         Set password for the User
         """
@@ -170,8 +173,10 @@ class BaseOTPBackend(ModelBackend):
                     user.save()
                     return user
 
+        return None
+
     @ensure_backend_effective
-    def authenticate(self, request, **kwargs) -> Optional[User]:
+    def authenticate(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         """
         Check OTP and authenticate User
         """
@@ -180,15 +185,17 @@ class BaseOTPBackend(ModelBackend):
                 if self.user_can_authenticate(device.user):
                     return self.authenticate_device(device, otp)
 
+        return None
+
     @ensure_backend_effective
-    def connect(self, request, **kwargs) -> Optional[User]:
+    def connect(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         """
         Check OTP and connects Device to the User
         """
         return self.authenticate(request, **kwargs)
 
     @ensure_backend_effective
-    def unlink(self, request, **kwargs):
+    def unlink(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         device = self.get_device(**kwargs)
         if not device:
             raise DeviceDoesNotExistError()
@@ -203,7 +210,7 @@ class BaseOTPBackend(ModelBackend):
         return new_device.user
 
     @ensure_backend_effective
-    def change(self, request, **kwargs) -> User:
+    def change(self, request: HttpRequest, **kwargs: Any) -> User:
         if self.connect(request, **kwargs):
             device = self.get_device(**kwargs)
             assert device is not None
@@ -214,8 +221,10 @@ class BaseOTPBackend(ModelBackend):
 
             return device.user
 
+        return None
+
     @ensure_backend_effective
-    def invite(self, request, **kwargs) -> Optional[User]:
+    def invite(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
         if device := self.get_device(**kwargs):
             user = device.user
         else:
@@ -237,7 +246,7 @@ class TwilioSMSOTPBackend(BaseOTPBackend):
     device_identity_field = "number"
     DeviceModel = TwilioSMSDevice
 
-    def send_otp(self, device: TwilioSMSDevice, **kwargs):
+    def send_otp(self, device: TwilioSMSDevice, **kwargs: Any) -> Optional[str]:
         if not PhoneNumberRule.check_number(device.number):
             raise InvalidPhoneNumberError()
 

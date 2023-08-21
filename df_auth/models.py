@@ -1,6 +1,6 @@
-from django.db import models
-
 import re
+
+from django.db import models
 
 
 class PhoneNumberRule(models.Model):

@@ -1,8 +1,6 @@
 from django.conf import settings
 from django.utils.module_loading import import_string
-from social_core.backends.oauth import BaseOAuth1
-from social_core.backends.oauth import BaseOAuth2
-
+from social_core.backends.oauth import BaseOAuth1, BaseOAuth2
 
 AUTHENTICATION_BACKENDS = [
     import_string(backend) for backend in settings.AUTHENTICATION_BACKENDS
