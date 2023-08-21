@@ -3,6 +3,7 @@ from rest_framework.exceptions import ValidationError
 
 
 class DfAuthError(ValidationError):
+    # TODO add codes
     default_detail = _("Authentication error")
 
 
@@ -11,18 +12,19 @@ class WrongOTPError(DfAuthError):
 
 
 class UserAlreadyExistError(DfAuthError):
-    default_detail = _("User already exist")
+    # code = "signup_user_exists"
+    default_detail = _("User with this identity already exists, try logging in")
 
 
 class DeviceTakenError(DfAuthError):
-    default_detail = _("This device is already taken")
+    default_detail = _("This device is already taken, unlink it first")
 
 
 class InvalidPhoneNumberError(DfAuthError):
     default_detail = _("Invalid phone number")
 
 
-class DeviceDoesNotExistError(DfAuthError):
+class OTPDeviceDoesNotExistError(DfAuthError):
     default_detail = _("Device does not exist")
 
 
