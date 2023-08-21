@@ -1,17 +1,18 @@
 from itertools import chain
 
-from df_auth.contants import AUTHENTICATION_BACKENDS
-from df_auth.contants import OAUTH1_BACKENDS_CHOICES
-from df_auth.contants import OAUTH2_BACKENDS_CHOICES
-from django.contrib.auth import authenticate
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import update_last_login
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
-from social_core.exceptions import AuthCanceled
-from social_core.exceptions import AuthForbidden
+from social_core.exceptions import AuthCanceled, AuthForbidden
 from social_django.models import DjangoStorage
 from social_django.utils import load_backend
+
+from df_auth.contants import (
+    AUTHENTICATION_BACKENDS,
+    OAUTH1_BACKENDS_CHOICES,
+    OAUTH2_BACKENDS_CHOICES,
+)
 
 from ..settings import api_settings
 from ..strategy import DRFStrategy
@@ -200,12 +201,6 @@ class ConnectSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin
 class UnlinkSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
     backend_method_name = "unlink"
     user = None
-
-
-# incredibly confusing
-# class ChangeSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin):
-#     backend_method_name = "change"
-#     user = None
 
 
 class SetPasswordSerializer(AuthBackendSerializerMixin):

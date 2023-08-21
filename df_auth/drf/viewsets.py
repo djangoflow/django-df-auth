@@ -1,23 +1,22 @@
-from ..permissions import IsUnauthenticated
-from .serializers import ChangeSerializer
-from .serializers import ConnectSerializer
-from .serializers import InviteSerializer
-from .serializers import OTPObtainSerializer
-from .serializers import SetPasswordSerializer
-from .serializers import SignupSerializer
-from .serializers import SocialOAuth1TokenObtainSerializer
-from .serializers import SocialTokenObtainSerializer
-from .serializers import TokenObtainSerializer
-from .serializers import TokenSerializer
-from .serializers import UnlinkSerializer
 from django.conf import settings
-from rest_framework import permissions
-from rest_framework import response
-from rest_framework import status
-from rest_framework import viewsets
+from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import api_settings as simple_jwt_settings
+
+from ..permissions import IsUnauthenticated
+from .serializers import (
+    ConnectSerializer,
+    InviteSerializer,
+    OTPObtainSerializer,
+    SetPasswordSerializer,
+    SignupSerializer,
+    SocialOAuth1TokenObtainSerializer,
+    SocialTokenObtainSerializer,
+    TokenObtainSerializer,
+    TokenSerializer,
+    UnlinkSerializer,
+)
 
 
 class ValidationOnlyCreateViewSet(viewsets.GenericViewSet):
@@ -64,12 +63,12 @@ class UserViewSet(ValidationOnlyCreateViewSet):
     serializer_class = SignupSerializer
     permission_classes = (permissions.AllowAny,)
 
-
-        # signup = create?
+    # signup = create?
     # invite
     # update = change password
-        # change_password = update
-        # reset_password ?
+    # change_password = update
+    # reset_password ?
+
 
 class ConnectViewSet(ValidationOnlyCreateViewSet):
     serializer_class = ConnectSerializer
@@ -78,11 +77,6 @@ class ConnectViewSet(ValidationOnlyCreateViewSet):
 
 class UnlinkViewSet(ValidationOnlyCreateViewSet):
     serializer_class = UnlinkSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-
-class ChangeViewSet(ValidationOnlyCreateViewSet):
-    serializer_class = ChangeSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
 

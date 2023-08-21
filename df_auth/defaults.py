@@ -21,4 +21,3 @@ DF_AUTH_APPS = [
     *DF_AUTH_APPS_OTP,
     *DF_AUTH_APPS_SOCIAL,
 ]
-

@@ -1,5 +1,6 @@
 import os
 
+from df_auth.defaults import DF_AUTH_APPS
 
 DEBUG = True
 
@@ -29,14 +30,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    *DF_AUTH_APPS,
     "tests.test_app.apps.TestAppConfig",
-    "django_otp",
-    "django_otp.plugins.otp_email",
-    "django_otp.plugins.otp_totp",
-    "django_otp.plugins.otp_static",
-    "otp_twilio",
-    "social_django",
-    "df_auth",
 ]
 
 MIDDLEWARE = [
