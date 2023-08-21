@@ -5,7 +5,7 @@
     e.g. `DF_AUTH_USER_IDENTITY_FIELDS` defaults to `email` or `username`
     - a social app integration for
       - facebook
-      - google 
+      - google
       - apple
 - as an unauthenticated user i want
   - obtain jwt token
@@ -17,9 +17,9 @@
       - google
       - apple
   - request otp
-    - with username 
+    - with username
     - username/password (2fa)
-  
+
 - as an authenticated (logged-in) user i want
   - connect/disconnect my social account
     - facebook
@@ -30,7 +30,7 @@
   - reset my password via single-use link (otp)
     - email
     - phone
-  
+
 - as new (an unregistered) user
   - register myself with
     - username/phone/email (`DF_AUTH_USER_IDENTITY_FIELDS`) combined with password and/or otp

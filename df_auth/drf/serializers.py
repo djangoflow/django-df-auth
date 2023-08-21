@@ -32,7 +32,7 @@ class IdentitySerializerMixin(serializers.Serializer):
             for f in api_settings.USER_IDENTITY_FIELDS
         }
 
-    def validate_email(self, value: str) -> None:
+    def validate_email(self, value: str) -> str:
         return User.objects.normalize_email(value)
 
 
@@ -51,12 +51,12 @@ class TokenCreateSerializer(TokenSerializer):
         if not simplejwt_settings.USER_AUTHENTICATION_RULE(self.user):
             raise exceptions.AuthenticationFailed()
 
-        token = self.get_token(self.user)
+        token = self.get_token(self.user)  # type: ignore
 
         attrs["token"] = str(token)
 
         if simplejwt_settings.UPDATE_LAST_LOGIN:
-            update_last_login(None, self.user)
+            update_last_login(None, self.user)  # type: ignore
 
         return attrs
 
@@ -67,7 +67,7 @@ class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
         Remove empty values to pass to authenticate or send_otp
         """
         attrs = {k: v for k, v in attrs.items() if v}
-        self.user = authenticate(**attrs, **self.context)
+        self.user = authenticate(**attrs, **self.context)  # type: ignore
         return super().validate(attrs)
 
     def get_fields(self) -> Dict[str, serializers.Field]:

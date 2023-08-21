@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
@@ -11,7 +11,7 @@ class UserManager(BaseUserManager):
     use_in_migrations = True
 
     @classmethod
-    def normalize_email(cls, email: str) -> str:
+    def normalize_email(cls, email: Optional[str]) -> str:
         return super().normalize_email(email).lower()
 
     def _create_user(
@@ -24,7 +24,7 @@ class UserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
-        return user
+        return user  # type: ignore
 
     def create_user(
         self, email: str, password: str, **extra_fields: Any
@@ -50,9 +50,9 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    objects = UserManager()
+    objects = UserManager()  # type: ignore
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: List[str] = []
-    username = None
-    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
+    username = None  # type: ignore
+    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)  # type: ignore
     phone_number = models.CharField(max_length=32, unique=True, null=True, blank=True)

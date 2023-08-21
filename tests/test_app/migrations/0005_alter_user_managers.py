@@ -5,16 +5,15 @@ import tests.test_app.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('test_app', '0004_remove_user_username'),
+        ("test_app", "0004_remove_user_username"),
     ]
 
     operations = [
         migrations.AlterModelManagers(
-            name='user',
+            name="user",
             managers=[
-                ('objects', tests.test_app.models.UserManager()),
+                ("objects", tests.test_app.models.UserManager()),
             ],
         ),
     ]

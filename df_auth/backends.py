@@ -32,7 +32,7 @@ def ensure_backend_effective(method: Any) -> Any:
 
 
 class TestEmailBackend(ModelBackend):
-    def authenticate(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
+    def authenticate(self, request: Optional[HttpRequest], **kwargs: Any) -> Optional[User]:  # type: ignore
         if (
             api_settings.TEST_USER_EMAIL
             and kwargs.get("email") == api_settings.TEST_USER_EMAIL
