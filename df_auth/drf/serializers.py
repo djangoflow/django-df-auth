@@ -3,6 +3,8 @@ from typing import Any, Dict, Optional
 
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import AbstractUser, update_last_login
+from django.db.models import Model
+from django_otp.models import Device
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.settings import (
     api_settings as simplejwt_settings,
@@ -19,6 +21,7 @@ from df_auth.contants import (
 
 from ..settings import api_settings
 from ..strategy import DRFStrategy
+from ..utils import get_otp_device_choices, get_otp_device_models
 
 User = get_user_model()
 
@@ -209,3 +212,50 @@ class UnlinkSerializer(FirstLastNameSerializerMixin, AuthBackendSerializerMixin)
 class SetPasswordSerializer(AuthBackendSerializerMixin):
     backend_method_name = "set_password"
     user = None
+
+
+class OTPDeviceTypeField(serializers.ChoiceField):
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs["source"] = "*"
+        super().__init__(**kwargs)
+
+    def to_representation(self, value: Model) -> Optional[str]:
+        for type_, model in get_otp_device_models().items():
+            if isinstance(value, model):
+                return type_
+        return None
+
+    def to_internal_value(self, data: Any) -> Dict[str, Any]:
+        return {self.field_name: data}
+
+
+class OTPDeviceSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(required=False)
+    type = OTPDeviceTypeField(choices=get_otp_device_choices(), source="*")
+    confirmed = serializers.BooleanField(read_only=True)
+
+    def create(self, validated_data: Dict[str, Any]) -> Device:
+        device_type = validated_data.pop("type")
+        DeviceModel = get_otp_device_models()[device_type]
+
+        data = {
+            **validated_data,
+            "user": self.context["request"].user,
+            "confirmed": False,
+        }
+
+        # TODO: create common interface to
+        # - check if user already this device
+        # - add additional fields
+        # - validate if we can create device with given name (email/phone)
+        if device_type == "sms":
+            data["number"] = validated_data["name"]
+        if device_type == "email":
+            data["email"] = validated_data["name"]
+
+        return DeviceModel.objects.create(**data)
+
+
+class OTPDeviceConfirmSerializer(serializers.Serializer):
+    code = serializers.CharField(required=True)

@@ -1,7 +1,8 @@
-from typing import Any
+from typing import Any, List, Type
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
+from django_otp.models import Device
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
@@ -9,10 +10,14 @@ from rest_framework_simplejwt.settings import (
     api_settings as simple_jwt_settings,
 )
 
+from ..exceptions import DfAuthValidationError, WrongOTPError
 from ..permissions import IsUnauthenticated
+from ..utils import get_otp_device_models
 from .serializers import (
     ConnectSerializer,
     InviteSerializer,
+    OTPDeviceConfirmSerializer,
+    OTPDeviceSerializer,
     OTPObtainSerializer,
     SetPasswordSerializer,
     SignupSerializer,
@@ -131,3 +136,52 @@ class SocialOAuth1TokenViewSet(ValidationOnlyCreateViewSet):
     )
     def connect(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return self.create(request, *args, **kwargs)
+
+
+class OtpDeviceViewSet(
+    viewsets.GenericViewSet,
+    viewsets.mixins.ListModelMixin,
+    viewsets.mixins.DestroyModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+    viewsets.mixins.CreateModelMixin,
+):
+    throttle_scope = "otp"
+    serializer_class = OTPDeviceSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self) -> List[Device]:
+        devices = []
+        for DeviceModel in get_otp_device_models().values():
+            devices.extend(DeviceModel.objects.filter(user=self.request.user))
+        return devices
+
+    def get_device_model(self) -> Type[Device]:
+        device_type = self.request.GET.get("type")
+        otp_device_models = get_otp_device_models()
+        if device_type not in otp_device_models:
+            raise DfAuthValidationError(
+                f"Invalid device type. Must be one of {', '.join(otp_device_models.keys())}"
+            )
+        return otp_device_models[device_type]
+
+    def get_object(self) -> Device:
+        return self.get_device_model().objects.get(
+            user=self.request.user, pk=self.kwargs["pk"]
+        )
+
+    @action(
+        methods=["post"],
+        detail=True,
+        serializer_class=OTPDeviceConfirmSerializer,
+    )
+    def confirm(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        otp = self.request.data.get("otp")
+        device: Device = self.get_object()
+        if not device.verify_token(otp):
+            raise WrongOTPError()
+
+        device.confirmed = True
+        device.save()
+
+        serializer = self.get_serializer(device)
+        return response.Response(serializer.data)
