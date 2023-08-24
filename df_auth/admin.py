@@ -4,11 +4,6 @@ from django.http import HttpRequest
 from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
 
-from df_auth.models import PhoneNumberRule
-
-# admin.site.unregister(TwilioSMSDevice)
-# admin.site.unregister(EmailDevice)
-
 
 @admin.register(TwilioSMSDevice)
 class TwilioSMSDeviceAdmin(admin.ModelAdmin):
@@ -60,12 +55,3 @@ class EmailDeviceAdmin(admin.ModelAdmin):
             messages.success(request, f"{device.email}: {device.token}")
 
     actions = [send_challenge]
-
-
-@admin.register(PhoneNumberRule)
-class PhoneNumberRulesAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "type",
-        "number_regex",
-    )

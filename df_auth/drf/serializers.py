@@ -6,6 +6,8 @@ from django.contrib.auth.models import AbstractUser, update_last_login
 from django.db.models import Model
 from django.utils.module_loading import import_string
 from django_otp.models import Device
+from django_otp.plugins.otp_email.models import EmailDevice
+from otp_twilio.models import TwilioSMSDevice
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.settings import (
     api_settings as simplejwt_settings,
@@ -211,19 +213,50 @@ class OTPDeviceConfirmSerializer(serializers.Serializer):
     code = serializers.CharField(required=True, write_only=True)
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.Serializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
-        return {}
+        return {
+            **build_required_fields(*api_settings.USER_REQUIRED_FIELDS),
+            **build_optional_fields(*api_settings.USER_OPTIONAL_FIELDS),
+        }
 
-    class Meta:
-        model = get_user_model()
-        fields = (
-            "id",
-            "username",
-            "first_name",
-            "last_name",
-            "email",
-            "is_active",
-            "is_staff",
-            "is_superuser",
-        )
+    def validate_email(self, value: str) -> str:
+        # TODO: check for black list
+        # Optional check if there no such EmailDevice
+        return User.objects.normalize_email(value)
+
+    def validate_username(self, value: str) -> str:
+        # TODO: check for black list
+        return value
+
+    def validate_phone_number(self, value: str) -> str:
+        # TODO: check for black list
+        # Optional check if there no such TwilioSMSDevice
+        return value
+
+    def create(self, validated_data):
+        if not validated_data.get("username"):
+            validated_data["username"] = (
+                validated_data["email"] or validated_data["phone_number"]
+            )
+
+        user = User(**validated_data)
+        if validated_data.get("password"):
+            user.set_password(validated_data["password"])
+        user.save()
+
+        # TODO: create common interface
+        if user.email:
+            EmailDevice.objects.create(
+                user=user, email=user.email, confirmed=False, name=user.email
+            )
+
+        if user.phone_number:
+            TwilioSMSDevice.objects.create(
+                user=user,
+                number=user.phone_number,
+                confirmed=False,
+                name=user.phone_number,
+            )
+
+        return user

@@ -4,12 +4,11 @@ from django.conf import settings
 from rest_framework.settings import APISettings
 
 DEFAULTS = {
-    "USER_REQUIRED_FIELDS": ("username",),
+    "USER_REQUIRED_FIELDS": ("email",),
     "USER_OPTIONAL_FIELDS": (
         "first_name",
         "last_name",
         "password",
-        "email",
         "phone_number",
     ),
     "USER_IDENTITY_FIELDS": ("username", "email", "phone_number"),

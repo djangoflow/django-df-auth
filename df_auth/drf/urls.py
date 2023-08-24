@@ -19,7 +19,7 @@ from .viewsets import (
 
 router = DefaultRouter()
 router.register("token", TokenViewSet, basename="token")
-router.register("user", UserViewSet, basename="signup")
+router.register("user", UserViewSet, basename="user")
 router.register("otp", OTPViewSet, basename="otp")
 router.register("otp-device", OtpDeviceViewSet, basename="otp-device")
 

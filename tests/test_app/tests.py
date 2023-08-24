@@ -8,7 +8,7 @@ from rest_framework.test import APIClient, APITestCase
 from tests.test_app.models import User
 
 
-class OtpDeviceAPITest(APITestCase):
+class OtpDeviceViewSetAPITest(APITestCase):
     def setUp(self) -> None:
         # Create a test user and set up any other objects you need
         self.user = User.objects.create_user(username="testuser", password="testpass")
@@ -124,3 +124,64 @@ class OtpDeviceAPITest(APITestCase):
         self.assertIn("email", types)
         self.assertIn("sms", types)
         self.assertIn("totp", types)
+
+
+class UserViewSetAPITest(APITestCase):
+    def setUp(self) -> None:
+        # Create a test user and set up any other objects you need
+        self.client = APIClient()
+        self.email = "test@te.st"
+        self.phone_number = "+1234567890"
+        self.password = "passwd"
+
+    def test_create_user_with_email_password(self):
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-list"),
+            {
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["email"], self.email)
+
+        user = User.objects.get(email=self.email)
+        self.assertTrue(user.check_password(self.password))
+        self.assertEqual(user.username, self.email)
+
+        device = EmailDevice.objects.get(user=user, name=self.email)
+        self.assertFalse(device.confirmed)
+
+    def test_unauthorized_user_cannot_invite_user(self):
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-invite"),
+            {
+                "email": self.email,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_invites_user_by_email_phone(self):
+        user_1 = User.objects.create_user(username="testuser", password="testpass")
+        client = APIClient()
+        client.force_authenticate(user=user_1)
+
+        email_2 = "test2@te.st"
+        phone_2 = "+0987654321"
+
+        response = client.post(
+            reverse("df_api_drf:v1:auth:user-invite"),
+            {
+                "phone_number": phone_2,
+                "email": email_2,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["phone_number"], phone_2)
+
+        user_2 = User.objects.get(phone_number=phone_2)
+        self.assertEqual(user_2.invited_by, user_1)
+        phone_device = TwilioSMSDevice.objects.get(user=user_2, name=phone_2)
+        self.assertFalse(phone_device.confirmed)
+        email_device = EmailDevice.objects.get(user=user_2, name=email_2)
+        self.assertFalse(email_device.confirmed)

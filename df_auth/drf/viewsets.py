@@ -5,6 +5,7 @@ from django.http import HttpRequest, HttpResponse
 from django_otp.models import Device
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import (
     api_settings as simple_jwt_settings,
@@ -152,7 +153,6 @@ class OtpDeviceViewSet(
 class UserViewSet(
     viewsets.GenericViewSet,
     viewsets.mixins.CreateModelMixin,
-    viewsets.mixins.UpdateModelMixin,
 ):
     serializer_class = UserSerializer
     permission_classes = (permissions.AllowAny,)
@@ -160,11 +160,21 @@ class UserViewSet(
     def get_object(self) -> Any:
         return self.request.user
 
+    @action(
+        methods=["post"],
+        detail=False,
+        permission_classes=(permissions.IsAuthenticated,),
+    )
     def invite(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        return self.create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(invited_by=self.request.user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
-    # signup = create?
-    # invite
+    # TODO: add:
     # update = change password
     # change_password = update
     # reset_password ?
