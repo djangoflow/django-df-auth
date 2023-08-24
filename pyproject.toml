@@ -33,6 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
+    "django-df-api-drf",
     "pytest",
     "pytest-django",
     "django-stubs[compatible-mypy]",
@@ -61,7 +62,7 @@ fix = true
 # Enable Flake's "E" and "F" codes by default.
 select = ["E", "F", "I", "W", "A", "B", "Q", "C", "S"]
 
-ignore = ["B008", "E501", "S101", "A003"]
+ignore = ["B008", "E501", "S101", "A003", "B904"]
 
 # Exclude a variety of commonly ignored directories.
 exclude = [

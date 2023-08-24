@@ -7,4 +7,4 @@ class DFAuthConfig(AppConfig):
     verbose_name = _("DjangoFlow Auth")
 
     class DFMeta:
-        drf_api_path = "auth/"
+        api_path = "auth/"

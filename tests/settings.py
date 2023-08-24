@@ -1,6 +1,12 @@
 import os
 
-from df_auth.defaults import DF_AUTH_APPS
+from df_api_drf.defaults import (
+    DF_API_DRF_INSTALLED_APPS,
+    REST_FRAMEWORK,
+    SPECTACULAR_SETTINGS,
+)
+
+from df_auth.defaults import DF_AUTH_INSTALLED_APPS
 
 DEBUG = True
 
@@ -29,8 +35,8 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
-    *DF_AUTH_APPS,
+    *DF_API_DRF_INSTALLED_APPS,
+    *DF_AUTH_INSTALLED_APPS,
     "tests.test_app.apps.TestAppConfig",
 ]
 
@@ -96,7 +102,6 @@ DF_AUTH = {
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": "a@a.aa",
     "OTP_IDENTITY_UPDATE_FIELD": True,
-    "REGISTER_SEND_OTP": False,
 }
 
 OTP_TWILIO_ACCOUNT = os.environ.get("OTP_TWILIO_ACCOUNT", "")
@@ -112,3 +117,10 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 
 SOCIAL_AUTH_TWITTER_KEY = os.environ.get("SOCIAL_AUTH_TWITTER_KEY", "")
 SOCIAL_AUTH_TWITTER_SECRET = os.environ.get("SOCIAL_AUTH_TWITTER_SECRET", "")
+
+SPECTACULAR_SETTINGS = {**SPECTACULAR_SETTINGS}
+
+REST_FRAMEWORK = {**REST_FRAMEWORK}
+REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] += (
+    "rest_framework.authentication.SessionAuthentication",
+)

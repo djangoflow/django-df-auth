@@ -14,18 +14,14 @@ from ..exceptions import DfAuthValidationError, WrongOTPError
 from ..permissions import IsUnauthenticated
 from ..utils import get_otp_device_models
 from .serializers import (
-    ConnectSerializer,
-    InviteSerializer,
+    EmptySerializer,
     OTPDeviceConfirmSerializer,
     OTPDeviceSerializer,
     OTPObtainSerializer,
-    SetPasswordSerializer,
-    SignupSerializer,
-    SocialOAuth1TokenObtainSerializer,
     SocialTokenObtainSerializer,
     TokenObtainSerializer,
     TokenSerializer,
-    UnlinkSerializer,
+    UserSerializer,
 )
 
 
@@ -71,40 +67,9 @@ class TokenViewSet(ValidationOnlyCreateViewSet):
         return self.create(request, *args, **kwargs)
 
 
-class UserViewSet(ValidationOnlyCreateViewSet):
-    serializer_class = SignupSerializer
-    permission_classes = (permissions.AllowAny,)
-
-    # signup = create?
-    # invite
-    # update = change password
-    # change_password = update
-    # reset_password ?
-
-
-class ConnectViewSet(ValidationOnlyCreateViewSet):
-    serializer_class = ConnectSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-
-class UnlinkViewSet(ValidationOnlyCreateViewSet):
-    serializer_class = UnlinkSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-
-class InviteViewSet(ValidationOnlyCreateViewSet):
-    serializer_class = InviteSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-
 class OTPViewSet(ValidationOnlyCreateViewSet):
     throttle_scope = "otp"
     serializer_class = OTPObtainSerializer
-    permission_classes = (permissions.AllowAny,)
-
-
-class SetPasswordViewSet(ValidationOnlyCreateViewSet):
-    serializer_class = SetPasswordSerializer
     permission_classes = (permissions.AllowAny,)
 
 
@@ -117,21 +82,6 @@ class SocialTokenViewSet(ValidationOnlyCreateViewSet):
         methods=["post"],
         detail=False,
         serializer_class=SocialTokenObtainSerializer,
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def connect(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        return self.create(request, *args, **kwargs)
-
-
-class SocialOAuth1TokenViewSet(ValidationOnlyCreateViewSet):
-    serializer_class = SocialOAuth1TokenObtainSerializer
-    response_serializer_class = TokenSerializer
-    permission_classes = (IsUnauthenticated,)
-
-    @action(
-        methods=["post"],
-        detail=False,
-        serializer_class=SocialOAuth1TokenObtainSerializer,
         permission_classes=(permissions.IsAuthenticated,),
     )
     def connect(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
@@ -183,5 +133,38 @@ class OtpDeviceViewSet(
         device.confirmed = True
         device.save()
 
+        return response.Response({})
+
+    @action(
+        methods=["post"],
+        detail=True,
+        serializer_class=EmptySerializer,
+    )
+    def send_otp(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        device: Device = self.get_object()
+        device.generate_challenge()
+        device.save()
+
         serializer = self.get_serializer(device)
         return response.Response(serializer.data)
+
+
+class UserViewSet(
+    viewsets.GenericViewSet,
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.UpdateModelMixin,
+):
+    serializer_class = UserSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_object(self) -> Any:
+        return self.request.user
+
+    def invite(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        return self.create(request, *args, **kwargs)
+
+    # signup = create?
+    # invite
+    # update = change password
+    # change_password = update
+    # reset_password ?

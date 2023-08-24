@@ -27,15 +27,15 @@ class UserManager(BaseUserManager):
         return user  # type: ignore
 
     def create_user(
-        self, email: str, password: str, **extra_fields: Any
+        self, username: str, password: str, **extra_fields: Any
     ) -> AbstractUser:
         """Create and save a regular User with the given email and password."""
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(username, password, **extra_fields)
 
     def create_superuser(
-        self, email: str, password: str, **extra_fields: Any
+        self, username: str, password: str, **extra_fields: Any
     ) -> AbstractUser:
         """Create and save a SuperUser with the given email and password."""
         extra_fields.setdefault("is_staff", True)
@@ -46,13 +46,12 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(username, password, **extra_fields)
 
 
 class User(AbstractUser):
     objects = UserManager()  # type: ignore
-    USERNAME_FIELD = "email"
+    USERNAME_FIELD = "username"
     REQUIRED_FIELDS: List[str] = []
-    username = None  # type: ignore
     email = models.EmailField(max_length=255, unique=True, null=True, blank=True)  # type: ignore
     phone_number = models.CharField(max_length=32, unique=True, null=True, blank=True)

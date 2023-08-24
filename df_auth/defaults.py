@@ -16,7 +16,7 @@ DF_AUTH_APPS_SOCIAL = [
 ]
 
 # Most common use case
-DF_AUTH_APPS = [
+DF_AUTH_INSTALLED_APPS = [
     *DF_AUTH_APPS_BASE,
     *DF_AUTH_APPS_OTP,
     *DF_AUTH_APPS_SOCIAL,

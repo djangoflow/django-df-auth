@@ -13,7 +13,6 @@ from .exceptions import (
     DeviceTakenError,
     InvalidPhoneNumberError,
     LastDeviceError,
-    UserAlreadyExistError,
     WrongOTPError,
 )
 from .models import PhoneNumberRule
@@ -126,13 +125,13 @@ class BaseOTPBackend(ModelBackend):
 
     @ensure_backend_effective
     def register(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
-        device = self.get_device(**kwargs)
-        if device is not None:
-            if api_settings.REGISTER_SEND_OTP:
-                self.send_otp(device, **kwargs)
-                return device.user
-            else:
-                raise UserAlreadyExistError()
+        # device = self.get_device(**kwargs)
+        # if device is not None:
+        #     if api_settings.REGISTER_SEND_OTP:
+        #         self.send_otp(device, **kwargs)
+        #         return device.user
+        #     else:
+        #         raise UserAlreadyExistError()
 
         return self.create_user(request, **kwargs)
 

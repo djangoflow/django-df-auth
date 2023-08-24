@@ -1,163 +1,126 @@
-import json
-from typing import Any
-from unittest.mock import MagicMock, patch
-
-from django.contrib.auth import get_user_model
 from django.urls import reverse
-from rest_framework.test import (
-    APIRequestFactory,
-    APITestCase,
-    force_authenticate,
-)
-from social_django.models import DjangoStorage
+from django_otp.plugins.otp_email.models import EmailDevice
+from django_otp.plugins.otp_totp.models import TOTPDevice
+from otp_twilio.models import TwilioSMSDevice
+from rest_framework import status
+from rest_framework.test import APIClient, APITestCase
 
-from df_auth.drf.serializers import (
-    SocialOAuth1TokenObtainSerializer,
-    SocialTokenObtainSerializer,
-)
-from df_auth.drf.viewsets import SocialOAuth1TokenViewSet
-from df_auth.strategy import DRFStrategy
-
-User = get_user_model()
+from tests.test_app.models import User
 
 
-class SocialTokenObtainSerializerTests(APITestCase):
-    """Tests for the SocialTokenObtainSerializer serializer."""
-
+class OtpDeviceAPITest(APITestCase):
     def setUp(self) -> None:
-        """Set up the test case by creating necessary test data and objects."""
-        self.user = User.objects.create_user(
-            email="testuser@example.com", password="testpassword"
-        )
-        # Create request object
-        self.request = APIRequestFactory()
-        self.request.user = self.user
-        self.request.session = {}
-        self.request.social_strategy = DRFStrategy(DjangoStorage, self.request)
-        self.access_token = "test"
+        # Create a test user and set up any other objects you need
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.email = "test@te.st"
+        self.phone_number = "+1234567890"
 
-        self.serializer = SocialTokenObtainSerializer
+    def test_create_email_device(self) -> None:
+        # Define the URL and the payload
 
-    @patch("df_auth.drf.serializers.load_backend")
-    def test_valid_data_oauth2(self, load_backend_mock: Any) -> None:
-        """Test that a valid social access token can be used to authenticate a user."""
-        provider = "facebook"
-
-        # Mock return values.
-        backend = MagicMock()
-        backend.name = provider
-        load_backend_mock.return_value = backend
-        mock_do_auth = backend.do_auth = MagicMock(return_value=self.user)
-
-        valid_data = {
-            "provider": "facebook",
-            "access_token": self.access_token,
-            "first_name": "John",
-            "last_name": "Doe",
-        }
-        serializer = self.serializer(data=valid_data, context={"request": self.request})
-        # Test to ensure no exception was raised.
-        serializer.is_valid(raise_exception=True)
-
-        # Ensure the mocked methods are called with the correspecting parameters.
-        mock_do_auth.assert_called_once_with(self.access_token, user=self.user)
-        load_backend_mock.assert_called_once_with(
-            self.request.social_strategy, provider, redirect_uri=None
+        # Make the API request to create a new email Device
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:otp-device-list"),
+            {
+                "type": "email",
+                "name": self.email,
+            },
         )
 
-        # Ensure the `token` key exist in the validated response
-        self.assertIn("token", serializer.validated_data)
+        # Check that the response indicates success
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["name"], self.email)
 
-
-class SocialOAuth1TokenObtainSerializerTests(APITestCase):
-    """Tests for the SocialTokenObtainSerializer serializer."""
-
-    def setUp(self) -> None:
-        """Set up the test case by creating necessary test data and objects."""
-        self.user = User.objects.create_user(
-            email="testuser@example.com", password="testpassword"
-        )
-        # Create request object
-        self.request = APIRequestFactory()
-        self.request.user = self.user
-        self.request.session = {}
-        self.request.social_strategy = DRFStrategy(DjangoStorage, self.request)
-
-        self.serializer = SocialOAuth1TokenObtainSerializer
-
-    @patch("df_auth.drf.serializers.load_backend")
-    def test_valid_data_oauth1(self, load_backend_mock: Any) -> None:
-        """Test that a valid social oauth_token and oauth_token_secret can be used to authenticate a user."""
-        provider = "twitter"
-        oauth_token = "test"
-        oauth_token_secret = "test2"
-
-        # Mock return values.
-        backend = MagicMock()
-        backend.name = provider
-        load_backend_mock.return_value = backend
-        mock_do_auth = backend.do_auth = MagicMock(return_value=self.user)
-
-        valid_data = {
-            "provider": provider,
-            "oauth_token": oauth_token,
-            "oauth_token_secret": oauth_token_secret,
-        }
-        serializer = self.serializer(data=valid_data, context={"request": self.request})
-        # Test to ensure no exception was raised.
-        serializer.is_valid(raise_exception=True)
-
-        # Ensure the mocked methods are called with the correspecting parameters.
-        mock_do_auth.assert_called_once_with(
-            {"oauth_token": oauth_token, "oauth_token_secret": oauth_token_secret},
+        # Check that a Device object was actually created
+        device = EmailDevice.objects.filter(
             user=self.user,
+            name=self.email,
+        ).first()
+        self.assertIsNotNone(device)
+        # Check that it's not verified
+        self.assertFalse(device.confirmed)
+        self.assertEqual(device.email, self.email)
+
+    def test_confirm_email_device(self) -> None:
+        email_device = EmailDevice.objects.create(
+            user=self.user,
+            name=self.email,
+            confirmed=False,
         )
-        load_backend_mock.assert_called_once_with(
-            self.request.social_strategy, provider, redirect_uri=None
+        self.assertIsNone(email_device.token)
+
+        send_url = reverse(
+            "df_api_drf:v1:auth:otp-device-send-otp", kwargs={"pk": email_device.pk}
+        )
+        response = self.client.post(f"{send_url}?type=email")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        email_device.refresh_from_db()
+        self.assertIsNotNone(email_device.token)
+
+        confirm_url = reverse(
+            "df_api_drf:v1:auth:otp-device-confirm", kwargs={"pk": email_device.pk}
+        )
+        response = self.client.post(
+            f"{confirm_url}?type=email",
+            {"otp": "wrong-token"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        email_device.refresh_from_db()
+        self.assertFalse(email_device.confirmed)
+        email_device.throttle_reset(commit=True)
+
+        response = self.client.post(
+            f"{confirm_url}?type=email",
+            {"otp": email_device.token},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        email_device.refresh_from_db()
+        self.assertTrue(email_device.confirmed)
+
+    def test_destroy_email_device(self) -> None:
+        email_device = EmailDevice.objects.create(
+            user=self.user,
+            name=self.email,
+            confirmed=True,
         )
 
-        # Ensure the `token` key exist in the validated response
-        self.assertIn("token", serializer.validated_data)
+        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], self.email)
+        self.assertEqual(response.data["results"][0]["type"], "email")
 
-
-class SocialOAuth1TokenViewSetTests(APITestCase):
-    def setUp(self) -> None:
-        self.basic_user_info = {
-            "email": "test@gmail.com",
-            "first_name": "John",
-            "last_name": "Doe",
-        }
-        self.factory = APIRequestFactory()
-        self.provider = "twitter"
-        self.user = User.objects.create(**self.basic_user_info)
-        self.data = {
-            "oauth_token": "test_token",
-            "oauth_token_secret": "test_token_secret",
-            "provider": self.provider,
-        }
-
-    def test_connect_authenticated(self) -> None:
-        """Test an aunthenticated user accessing the endpoint."""
-        request = self.factory.post(
-            reverse("social_oauth1-connect"), data=self.data, format="json"
+        response = self.client.delete(
+            reverse(
+                "df_api_drf:v1:auth:otp-device-detail", kwargs={"pk": email_device.pk}
+            )
+            + "?type=email"
         )
-        force_authenticate(request, user=self.user)
-        response = SocialOAuth1TokenViewSet.as_view({"post": "connect"})(request)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    @patch("df_auth.drf.serializers.load_backend")
-    def test_connect_unauthenticated(self, mock_load_backend: Any) -> None:
-        """Test an unauthenticated user accessing the endpoint."""
-        # Mock return values.
-        backend = MagicMock(name=self.provider)
-        mock_load_backend.return_value = backend
-        backend.do_auth = MagicMock(return_value=self.user)
+        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 0)
 
-        request = self.factory.post(
-            reverse("social_oauth1-connect"), data=self.data, format="json"
+    def test_list_device_with_different_types(self) -> None:
+        EmailDevice.objects.create(
+            user=self.user,
+            name=self.email,
         )
-        request.session = {}
-        response = SocialOAuth1TokenViewSet.as_view({"post": "connect"})(request)
-        self.assertEqual(response.status_code, 200)
-        response.render()
-        self.assertIn("token", json.loads(response.content))
+        TwilioSMSDevice.objects.create(
+            user=self.user,
+            name=self.phone_number,
+        )
+        TOTPDevice.objects.create(
+            user=self.user,
+            name="default",
+        )
+        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 3)
+        types = [device["type"] for device in response.data["results"]]
+        self.assertIn("email", types)
+        self.assertIn("sms", types)
+        self.assertIn("totp", types)

@@ -4,7 +4,15 @@ from django.conf import settings
 from rest_framework.settings import APISettings
 
 DEFAULTS = {
-    "USER_IDENTITY_FIELDS": ("email", "phone_number"),
+    "USER_REQUIRED_FIELDS": ("username",),
+    "USER_OPTIONAL_FIELDS": (
+        "first_name",
+        "last_name",
+        "password",
+        "email",
+        "phone_number",
+    ),
+    "USER_IDENTITY_FIELDS": ("username", "email", "phone_number"),
     "REQUIRED_AUTH_FIELDS": (),
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": None,
@@ -14,7 +22,7 @@ DEFAULTS = {
         "totp": "django_otp.plugins.otp_totp.models.TOTPDevice",
         "sms": "otp_twilio.models.TwilioSMSDevice",
     },
-    "REGISTER_SEND_OTP": False,
+    # "REGISTER_SEND_OTP": False,
     # Must be removed and implemented project level by overriding backend?
     # "SIGNIN_AUTOCREATE_ACCOUNT": True,
 }
