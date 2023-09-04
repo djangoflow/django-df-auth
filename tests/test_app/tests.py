@@ -47,6 +47,7 @@ class OtpDeviceViewSetAPITest(APITestCase):
         email_device = EmailDevice.objects.create(
             user=self.user,
             name=self.email,
+            email=self.email,
             confirmed=False,
         )
         self.assertIsNone(email_device.token)
@@ -71,6 +72,8 @@ class OtpDeviceViewSetAPITest(APITestCase):
         self.assertFalse(email_device.confirmed)
         email_device.throttle_reset(commit=True)
 
+        self.user.refresh_from_db()
+        self.assertIsNone(self.user.email)
         response = self.client.post(
             f"{confirm_url}?type=email",
             {"otp": email_device.token},
@@ -78,6 +81,8 @@ class OtpDeviceViewSetAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         email_device.refresh_from_db()
         self.assertTrue(email_device.confirmed)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, self.email)
 
     def test_destroy_email_device(self) -> None:
         email_device = EmailDevice.objects.create(
@@ -134,7 +139,7 @@ class UserViewSetAPITest(APITestCase):
         self.phone_number = "+1234567890"
         self.password = "passwd"
 
-    def test_create_user_with_email_password(self):
+    def test_create_user_with_email_password(self) -> None:
         response = self.client.post(
             reverse("df_api_drf:v1:auth:user-list"),
             {
@@ -152,7 +157,7 @@ class UserViewSetAPITest(APITestCase):
         device = EmailDevice.objects.get(user=user, name=self.email)
         self.assertFalse(device.confirmed)
 
-    def test_unauthorized_user_cannot_invite_user(self):
+    def test_unauthorized_user_cannot_invite_user(self) -> None:
         response = self.client.post(
             reverse("df_api_drf:v1:auth:user-invite"),
             {
@@ -161,7 +166,7 @@ class UserViewSetAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_user_invites_user_by_email_phone(self):
+    def test_user_invites_user_by_email_phone(self) -> None:
         user_1 = User.objects.create_user(username="testuser", password="testpass")
         client = APIClient()
         client.force_authenticate(user=user_1)

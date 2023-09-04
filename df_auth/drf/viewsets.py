@@ -3,6 +3,8 @@ from typing import Any, List, Type
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django_otp.models import Device
+from django_otp.plugins.otp_email.models import EmailDevice
+from otp_twilio.models import TwilioSMSDevice
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,6 +15,7 @@ from rest_framework_simplejwt.settings import (
 
 from ..exceptions import DfAuthValidationError, WrongOTPError
 from ..permissions import IsUnauthenticated
+from ..settings import api_settings
 from ..utils import get_otp_device_models
 from .serializers import (
     EmptySerializer,
@@ -133,6 +136,14 @@ class OtpDeviceViewSet(
 
         device.confirmed = True
         device.save()
+
+        if api_settings.OTP_IDENTITY_UPDATE_FIELD:
+            # TODO: create a common interface for this
+            if isinstance(device, EmailDevice):
+                device.user.email = device.name
+            elif isinstance(device, TwilioSMSDevice):
+                device.user.phone_number = device.number
+            device.user.save()
 
         return response.Response({})
 

@@ -123,12 +123,7 @@ class OTPObtainSerializer(AuthBackendSerializerMixin):
     backend_method_name = "generate_challenge"
 
 
-class FirstLastNameSerializerMixin(serializers.Serializer):
-    first_name = serializers.CharField(required=False)
-    last_name = serializers.CharField(required=False)
-
-
-class SocialTokenObtainSerializer(FirstLastNameSerializerMixin, TokenCreateSerializer):
+class SocialTokenObtainSerializer(TokenCreateSerializer):
     access_token = serializers.CharField(write_only=True)
     provider = serializers.ChoiceField(
         choices=[
@@ -152,16 +147,6 @@ class SocialTokenObtainSerializer(FirstLastNameSerializerMixin, TokenCreateSeria
             self.user = request.backend.do_auth(attrs["access_token"], user=user)
         except (AuthCanceled, AuthForbidden):
             raise exceptions.AuthenticationFailed()
-
-        update_fields = []
-        for attr in ("first_name", "last_name"):
-            if not getattr(self.user, attr, None):
-                value = attrs.get(attr, None)
-                if value:
-                    setattr(self.user, attr, value)
-                    update_fields.append(attr)
-        if update_fields:
-            self.user.save(update_fields=update_fields)
 
         return super().validate(attrs)
 
@@ -234,7 +219,7 @@ class UserSerializer(serializers.Serializer):
         # Optional check if there no such TwilioSMSDevice
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: Any) -> User:
         if not validated_data.get("username"):
             validated_data["username"] = (
                 validated_data["email"] or validated_data["phone_number"]
@@ -246,12 +231,12 @@ class UserSerializer(serializers.Serializer):
         user.save()
 
         # TODO: create common interface
-        if user.email:
+        if user.email:  # type: ignore
             EmailDevice.objects.create(
-                user=user, email=user.email, confirmed=False, name=user.email
+                user=user, email=user.email, confirmed=False, name=user.email  # type: ignore
             )
 
-        if user.phone_number:
+        if user.phone_number:  # type: ignore
             TwilioSMSDevice.objects.create(
                 user=user,
                 number=user.phone_number,
