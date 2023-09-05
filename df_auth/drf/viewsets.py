@@ -189,3 +189,5 @@ class UserViewSet(
     # update = change password
     # change_password = update
     # reset_password ?
+
+    # Update -> updating identity fields (check devices)

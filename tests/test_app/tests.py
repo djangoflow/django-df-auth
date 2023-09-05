@@ -130,6 +130,16 @@ class OtpDeviceViewSetAPITest(APITestCase):
         self.assertIn("sms", types)
         self.assertIn("totp", types)
 
+    def test_totp_device_has_key(self) -> None:
+        TOTPDevice.objects.create(
+            user=self.user,
+            name="default",
+        )
+        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertIsNotNone(response.data["results"][0]["key"])
+
 
 class UserViewSetAPITest(APITestCase):
     def setUp(self) -> None:

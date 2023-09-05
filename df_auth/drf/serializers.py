@@ -171,6 +171,11 @@ class OTPDeviceSerializer(serializers.Serializer):
     name = serializers.CharField(required=False)
     type = OTPDeviceTypeField(choices=get_otp_device_choices(), source="*")
     confirmed = serializers.BooleanField(read_only=True)
+    key = serializers.SerializerMethodField()
+
+    def get_key(self, obj: Device) -> Optional[str]:
+        # We need `key` field for TOTP devices
+        return getattr(obj, "key", None)
 
     def create(self, validated_data: Dict[str, Any]) -> Device:
         device_type = validated_data.pop("type")

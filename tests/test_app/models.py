@@ -51,3 +51,4 @@ class User(AbstractUser):
     invited_by = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True
     )
+    is_2fa_enabled = models.BooleanField(default=False)
