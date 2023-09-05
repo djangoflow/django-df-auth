@@ -5,6 +5,8 @@ from otp_twilio.models import TwilioSMSDevice
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+from df_auth.exceptions import UserDoesNotExistError
+from df_auth.settings import api_settings
 from tests.test_app.models import User
 
 
@@ -52,10 +54,13 @@ class OtpDeviceViewSetAPITest(APITestCase):
         )
         self.assertIsNone(email_device.token)
 
-        send_url = reverse(
-            "df_api_drf:v1:auth:otp-device-send-otp", kwargs={"pk": email_device.pk}
+        send_url = reverse("df_api_drf:v1:auth:otp-list")
+        response = self.client.post(
+            f"{send_url}",
+            {
+                "email": email_device.email,
+            },
         )
-        response = self.client.post(f"{send_url}?type=email")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         email_device.refresh_from_db()
         self.assertIsNotNone(email_device.token)
@@ -200,3 +205,93 @@ class UserViewSetAPITest(APITestCase):
         self.assertFalse(phone_device.confirmed)
         email_device = EmailDevice.objects.get(user=user_2, name=email_2)
         self.assertFalse(email_device.confirmed)
+
+
+class OtpViewSetAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+
+    def test_user_can_request_otp_with_registration(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:otp-list"),
+            {
+                "email": self.email,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user = User.objects.get(email=self.email)
+        device = EmailDevice.objects.get(user=user, name=self.email)
+        self.assertTrue(device.confirmed)
+        self.assertTrue(device.verify_token(device.token))
+
+
+class OtpViewSetWithDisabledAnonOtpAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        api_settings.SEND_OTP_UNAUTHORIZED_USER = False
+
+    def tearDown(self) -> None:
+        api_settings.SEND_OTP_UNAUTHORIZED_USER = True
+
+    def test_unauthorized_user_cannot_request_otp(self) -> None:
+        user = User.objects.create_user(
+            username="testuser", password="testpass", email=self.email
+        )
+        EmailDevice.objects.create(
+            user=user, name=self.email, confirmed=True, email=self.email
+        )
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:otp-list"),
+            {
+                "email": self.email,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["errors"][0]["code"], "unauthorized_otp_request")
+
+
+class OtpViewSetWithDisabledOtpAutoCreateAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        api_settings.OTP_AUTO_CREATE_ACCOUNT = False
+
+    def tearDown(self) -> None:
+        api_settings.OTP_AUTO_CREATE_ACCOUNT = False
+
+    def test_user_cannot_request_otp_without_registration(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:otp-list"),
+            {
+                "email": self.email,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["errors"][0]["code"], UserDoesNotExistError.default_code
+        )
+
+
+class TokenViewSetAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass", email="test@te.st"
+        )
+        self.device = EmailDevice.objects.create(
+            user=self.user, name=self.user.email, confirmed=True, email=self.user.email
+        )
+
+    def test_obtain_token_by_email_and_otp(self) -> None:
+        self.device.generate_challenge()
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:token-list"),
+            {
+                "email": self.user.email,
+                "otp": self.device.token,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.assertTrue(response.get("token", "") != "")

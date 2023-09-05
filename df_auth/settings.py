@@ -21,9 +21,8 @@ DEFAULTS = {
         "totp": "django_otp.plugins.otp_totp.models.TOTPDevice",
         "sms": "otp_twilio.models.TwilioSMSDevice",
     },
-    # "REGISTER_SEND_OTP": False,
-    # Must be removed and implemented project level by overriding backend?
-    # "SIGNIN_AUTOCREATE_ACCOUNT": True,
+    "OTP_AUTO_CREATE_ACCOUNT": True,
+    "SEND_OTP_UNAUTHORIZED_USER": True,
 }
 
 IMPORT_STRINGS: List[str] = []

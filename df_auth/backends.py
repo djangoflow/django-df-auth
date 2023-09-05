@@ -8,7 +8,6 @@ from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
 
 from .exceptions import (
-    DeviceDoesNotExistError,
     UserDoesNotExistError,
     WrongOTPError,
 )
@@ -41,56 +40,78 @@ class BaseOTPBackend(ModelBackend):
             )
             user.save()
 
-    def generate_challenge(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
+    def generate_challenge(
+        self, request: HttpRequest, user: Optional[User], **kwargs: Any
+    ) -> Optional[User]:
         """
-        Generate and send OTP code
+        - if user not authorized:
+            - find User by some identity field: email/phone.
+                - if not found:
+                    - if OTP_AUTO_CREATE_ACCOUNT -> create a User with form data
+                    - else: raise an error "No user, please register"
+
+        - Create active device if does not exist
+        - send otp for the device
         """
         if not kwargs.get(self.identity_field):
-            return
-
-        user = User.objects.filter(
-            **{self.identity_field: kwargs.get(self.identity_field)}, is_active=True
-        ).first()
+            return None
 
         if not user:
-            raise UserDoesNotExistError()
+            user = User.objects.filter(
+                **{self.identity_field: kwargs.get(self.identity_field)}, is_active=True
+            ).first()
+            if not user:
+                if api_settings.OTP_AUTO_CREATE_ACCOUNT:
+                    user = User.objects.create(
+                        **{
+                            k: v
+                            for k, v in kwargs.items()
+                            if k
+                            in [
+                                *api_settings.USER_REQUIRED_FIELDS,
+                                *api_settings.USER_OPTIONAL_FIELDS,
+                            ]
+                        }
+                    )
+                else:
+                    raise UserDoesNotExistError()
 
-        device = self.DeviceModel.objects.filter(
-            user=user, **{self.device_identity_field: kwargs.get(self.identity_field)}
+        device, _ = self.DeviceModel.objects.get_or_create(
+            user=user,
+            **{self.device_identity_field: kwargs.get(self.identity_field)},
+            defaults={
+                "name": kwargs.get("name", kwargs.get(self.identity_field)),
+                "confirmed": True,  # Because User already has this device as identity field
+            },
         )
-
-        if device is None:
-            raise DeviceDoesNotExistError()
 
         device.generate_challenge()
         return device.user
 
-    def authenticate(self, request: HttpRequest, **kwargs: Any) -> Optional[User]:
+    def authenticate(self, request: Optional[HttpRequest], **kwargs: Any) -> Optional[User]:  # type: ignore
         """
         Check OTP and authenticate User
         """
-        if not kwargs.get(self.identity_field):
-            return
+        if not kwargs.get(self.identity_field) or not kwargs.get("otp"):
+            return None
 
         user = User.objects.filter(
             **{self.identity_field: kwargs.get(self.identity_field)}, is_active=True
         ).first()
 
         if not user:
-            raise UserDoesNotExistError()
+            return None
 
         device = self.DeviceModel.objects.filter(
             user=user, **{self.device_identity_field: kwargs.get(self.identity_field)}
-        )
+        ).first()
         if device is None:
-            raise DeviceDoesNotExistError()
+            return None
 
-        if otp := kwargs.get("otp"):
-            if not device.verify_token(otp):
-                raise WrongOTPError()
-            return device.user
+        if not device.verify_token(kwargs.get("otp")):
+            raise WrongOTPError()
 
-        return None
+        return device.user
 
 
 class EmailOTPBackend(BaseOTPBackend):

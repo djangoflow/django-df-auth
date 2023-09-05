@@ -18,7 +18,6 @@ from ..permissions import IsUnauthenticated
 from ..settings import api_settings
 from ..utils import get_otp_device_models
 from .serializers import (
-    EmptySerializer,
     OTPDeviceConfirmSerializer,
     OTPDeviceSerializer,
     OTPObtainSerializer,
@@ -146,19 +145,6 @@ class OtpDeviceViewSet(
             device.user.save()
 
         return response.Response({})
-
-    @action(
-        methods=["post"],
-        detail=True,
-        serializer_class=EmptySerializer,
-    )
-    def send_otp(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        device: Device = self.get_object()
-        device.generate_challenge()
-        device.save()
-
-        serializer = self.get_serializer(device)
-        return response.Response(serializer.data)
 
 
 class UserViewSet(

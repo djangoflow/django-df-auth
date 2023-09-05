@@ -122,6 +122,34 @@ class AuthBackendSerializerMixin(IdentitySerializerMixin):
 class OTPObtainSerializer(AuthBackendSerializerMixin):
     backend_method_name = "generate_challenge"
 
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        - check user auth:
+          - if request.user authorized else
+          - if user = authenticate(**attrs, **self.context)
+          - else not authorized
+        - if not authorized + SEND_OTP_UNAUTHORIZED_USER=False -> raise an error
+        - send otp for the device
+        """
+        attrs = {k: v for k, v in attrs.items() if v}
+
+        # check user auth
+        if self.context["request"].user.is_authenticated:
+            user = self.context["request"].user
+        else:
+            user = authenticate(**attrs, **self.context)
+
+        # if not authorized + SEND_OTP_UNAUTHORIZED_USER=False -> raise an error
+        if not user and not api_settings.SEND_OTP_UNAUTHORIZED_USER:
+            raise exceptions.AuthenticationFailed(
+                "Please log in to request your OTP code.",
+                code="unauthorized_otp_request",
+            )
+        self.context["user"] = user
+
+        # retrieve device + generate challenge
+        return super().validate(attrs)
+
 
 class SocialTokenObtainSerializer(TokenCreateSerializer):
     access_token = serializers.CharField(write_only=True)
