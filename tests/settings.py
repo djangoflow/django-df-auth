@@ -97,7 +97,7 @@ STATIC_URL = "/static/"
 ALLOWED_HOSTS = ["*"]
 
 DF_AUTH = {
-    "USER_IDENTITY_FIELDS": ("email", "phone_number"),
+    "USER_IDENTITY_FIELDS": ("username", "email", "phone_number"),
     "REQUIRED_AUTH_FIELDS": (),
     "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
     "TEST_USER_EMAIL": "a@a.aa",

@@ -27,22 +27,25 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-def build_required_fields(*fields: str) -> Dict[str, serializers.Field]:
-    return {f: serializers.CharField(required=True, allow_blank=False) for f in fields}
+def build_required_fields(*fields: str, **kwargs: Any) -> Dict[str, serializers.Field]:
+    return {
+        f: serializers.CharField(required=True, allow_blank=False, **kwargs)
+        for f in fields
+    }
 
 
-def build_optional_fields(*fields: str) -> Dict[str, serializers.Field]:
-    return {f: serializers.CharField(required=False, allow_blank=True) for f in fields}
+def build_optional_fields(*fields: str, **kwargs: Any) -> Dict[str, serializers.Field]:
+    return {
+        f: serializers.CharField(required=False, allow_blank=True, **kwargs)
+        for f in fields
+    }
 
 
 class EmptySerializer(serializers.Serializer):
     pass
 
 
-class IdentitySerializerMixin(serializers.Serializer):
-    def get_fields(self) -> Dict[str, serializers.Field]:
-        return build_optional_fields(*api_settings.USER_IDENTITY_FIELDS)
-
+class ValidateIdentityFieldsMixin:
     def validate_email(self, value: str) -> str:
         return User.objects.normalize_email(value)
 
@@ -72,7 +75,7 @@ class TokenCreateSerializer(TokenSerializer):
         return attrs
 
 
-class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
+class TokenObtainSerializer(TokenCreateSerializer, ValidateIdentityFieldsMixin):
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Remove empty values to pass to authenticate or send_otp
@@ -84,14 +87,21 @@ class TokenObtainSerializer(IdentitySerializerMixin, TokenCreateSerializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
         fields = super().get_fields()
         fields.update(
-            **build_required_fields(*api_settings.REQUIRED_AUTH_FIELDS),
-            **build_optional_fields(*api_settings.OPTIONAL_AUTH_FIELDS),
+            **build_required_fields(
+                *api_settings.REQUIRED_AUTH_FIELDS, write_only=True
+            ),
+            **build_optional_fields(
+                *api_settings.OPTIONAL_AUTH_FIELDS, write_only=True
+            ),
+            **build_optional_fields(
+                *api_settings.USER_IDENTITY_FIELDS, write_only=True
+            ),
         )
 
         return fields
 
 
-class AuthBackendSerializerMixin(IdentitySerializerMixin):
+class AuthBackendSerializer(serializers.Serializer):
     backend_method_name: Optional[str] = None
     backend_extra_kwargs: Dict[str, Any] = {}
 
@@ -99,6 +109,7 @@ class AuthBackendSerializerMixin(IdentitySerializerMixin):
         return {
             **super().get_fields(),
             **build_optional_fields(
+                *api_settings.USER_IDENTITY_FIELDS,
                 *api_settings.REQUIRED_AUTH_FIELDS,
                 *api_settings.OPTIONAL_AUTH_FIELDS,
             ),
@@ -119,7 +130,7 @@ class AuthBackendSerializerMixin(IdentitySerializerMixin):
         )
 
 
-class OTPObtainSerializer(AuthBackendSerializerMixin):
+class OTPObtainSerializer(AuthBackendSerializer, ValidateIdentityFieldsMixin):
     backend_method_name = "generate_challenge"
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:

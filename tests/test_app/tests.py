@@ -294,4 +294,15 @@ class TokenViewSetAPITest(APITestCase):
             },
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertTrue(response.get("token", "") != "")
+        self.assertNotEqual(response.data.get("token", ""), "")
+
+    def test_obtain_token_by_username_and_password(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:token-list"),
+            {
+                "username": self.user.username,
+                "password": "testpass",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data.get("token", ""), "")
