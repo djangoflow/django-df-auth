@@ -16,7 +16,7 @@ from rest_framework_simplejwt.settings import (
 from ..exceptions import DfAuthValidationError, WrongOTPError
 from ..permissions import IsUnauthenticated
 from ..settings import api_settings
-from ..utils import get_otp_device_models
+from ..utils import get_otp_device_models, get_otp_devices
 from .serializers import (
     OTPDeviceConfirmSerializer,
     OTPDeviceSerializer,
@@ -103,10 +103,7 @@ class OtpDeviceViewSet(
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self) -> List[Device]:
-        devices = []
-        for DeviceModel in get_otp_device_models().values():
-            devices.extend(DeviceModel.objects.filter(user=self.request.user))
-        return devices
+        return get_otp_devices(self.request.user)
 
     def get_device_model(self) -> Type[Device]:
         device_type = self.request.GET.get("type")

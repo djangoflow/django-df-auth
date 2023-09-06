@@ -2,7 +2,8 @@ from typing import Any, Dict, Optional
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.models import AbstractUser, update_last_login
+from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.auth.models import update_last_login
 from django.db.models import Model
 from django.utils.module_loading import import_string
 from django_otp.models import Device
@@ -18,7 +19,11 @@ from social_django.utils import load_backend
 
 from ..settings import api_settings
 from ..strategy import DRFStrategy
-from ..utils import get_otp_device_choices, get_otp_device_models
+from ..utils import (
+    get_otp_device_choices,
+    get_otp_device_models,
+    get_otp_devices,
+)
 
 User = get_user_model()
 
@@ -58,7 +63,7 @@ class TokenSerializer(serializers.Serializer):
 
 class TokenCreateSerializer(TokenSerializer):
     @classmethod
-    def get_token(cls, user: AbstractUser) -> None:
+    def get_token(cls, user: AbstractBaseUser) -> None:
         return cls.token_class.for_user(user)
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
@@ -82,6 +87,17 @@ class TokenObtainSerializer(TokenCreateSerializer, ValidateIdentityFieldsMixin):
         """
         attrs = {k: v for k, v in attrs.items() if v}
         self.user = authenticate(**attrs, **self.context)  # type: ignore
+
+        if self.user and getattr(self.user, "is_2fa_enabled", False):
+            devices = [d for d in get_otp_devices(self.user) if d.confirmed]
+            otp = attrs.get("otp")
+
+            if not any(d.verify_token(otp) for d in devices):
+                raise exceptions.AuthenticationFailed(
+                    "2FA is required for this user.",
+                    code="2fa_required",
+                )
+
         return super().validate(attrs)
 
     def get_fields(self) -> Dict[str, serializers.Field]:

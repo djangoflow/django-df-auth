@@ -306,3 +306,41 @@ class TokenViewSetAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotEqual(response.data.get("token", ""), "")
+
+
+class TokenViewSet2FAAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="testuser",
+            password="testpass",
+            email="test@te.st",
+            is_2fa_enabled=True,
+        )
+        self.device = EmailDevice.objects.create(
+            user=self.user, name=self.user.email, confirmed=True, email=self.user.email
+        )
+
+    def test_user_with_2fa_cannot_authorize_without_otp(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:token-list"),
+            {
+                "username": self.user.username,
+                "password": "testpass",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["errors"][0]["code"], "2fa_required")
+
+    def test_user_with_2fa_can_authorize_with_otp(self) -> None:
+        self.device.generate_challenge()
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:token-list"),
+            {
+                "username": self.user.username,
+                "password": "testpass",
+                "otp": self.device.token,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data.get("token", ""), "")
