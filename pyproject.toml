@@ -1,6 +1,6 @@
 [project]
 name = "django-df-auth"
-version = "1.0.0-alpha.1"
+version = "1.0.0-alpha.2"
 description = "Opinionated Django REST auth endpoints for JWT authentication and social accounts."
 readme = "README.md"
 authors = [{name = "Apexive OSS", email = "open-source@apexive.com"}]
@@ -49,8 +49,9 @@ build-backend = 'setuptools.build_meta'
 
 [tool.setuptools]
 include-package-data = true
-packages = ["df_auth"]
 
+[tool.setuptools.packages.find]
+include =  ["df_auth*"]
 
 [tools.black]
 max-line-length = 88
