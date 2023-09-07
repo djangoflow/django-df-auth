@@ -14,7 +14,7 @@ from social_core.exceptions import AuthCanceled
 from social_core.exceptions import AuthForbidden
 from social_django.models import DjangoStorage
 from social_django.utils import load_backend
-
+from phonenumber_field.serializerfields import PhoneNumberField
 
 User = get_user_model()
 
@@ -24,7 +24,8 @@ class IdentitySerializerMixin(serializers.Serializer):
 
     def get_fields(self):
         return super().get_fields() | {
-            f: serializers.CharField(write_only=True, required=False, allow_blank=True)
+            f: PhoneNumberField(write_only=True, required=False, allow_blank=True) if f == 'phone_number'
+            else serializers.CharField(write_only=True, required=False, allow_blank=True)
             for f in api_settings.USER_IDENTITY_FIELDS
         }
 

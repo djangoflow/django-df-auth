@@ -89,7 +89,7 @@ class BaseOTPBackend(ModelBackend):
         Create Device for the User
         """
         return self.DeviceModel._default_manager.create(
-            user=user, **{self.device_identity_field: kwargs.get(self.identity_field)}
+            user=user, **{self.device_identity_field: str(kwargs.get(self.identity_field) or '')}
         )
 
     def authenticate_device(self, device: SideChannelDevice, otp: str) -> User:
