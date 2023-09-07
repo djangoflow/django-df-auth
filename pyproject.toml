@@ -34,7 +34,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "django-df-api-drf",
+    "django-df-api-drf>=0.0.9",
     "pytest",
     "pytest-django",
     "django-stubs[compatible-mypy]",

@@ -1,6 +1,9 @@
+from df_api_drf.exceptions import ExtraDataAPIException
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import (
+    ValidationError,
+)
 
 
 class DfAuthValidationError(ValidationError):
@@ -73,3 +76,9 @@ class LastDeviceError(DfAuthValidationError):
 
     default_detail = _("Cannot remove the last device")
     default_code = "last_device_error"
+
+
+class Authentication2FARequiredError(ExtraDataAPIException):
+    default_detail = "2FA is required for this user."
+    default_code = "2fa_required"
+    status_code = status.HTTP_401_UNAUTHORIZED

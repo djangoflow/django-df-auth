@@ -333,6 +333,11 @@ class TokenViewSet2FAAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.data["errors"][0]["code"], "2fa_required")
+        self.assertIn("devices", response.data["errors"][0]["extra_data"])
+        devices = response.data["errors"][0]["extra_data"]["devices"]
+        self.assertEqual(len(devices), 1)
+        self.assertEqual(devices[0]["name"], self.device.name)
+        self.assertEqual(devices[0]["type"], "email")
 
     def test_user_with_2fa_can_authorize_with_otp(self) -> None:
         self.device.generate_challenge()

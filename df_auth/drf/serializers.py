@@ -17,6 +17,7 @@ from social_core.exceptions import AuthCanceled, AuthForbidden
 from social_django.models import DjangoStorage
 from social_django.utils import load_backend
 
+from ..exceptions import Authentication2FARequiredError
 from ..settings import api_settings
 from ..strategy import DRFStrategy
 from ..utils import (
@@ -83,9 +84,8 @@ class TokenObtainSerializer(TokenCreateSerializer, ValidateIdentityFieldsMixin):
             otp = attrs.get("otp")
 
             if not any(d.verify_token(otp) for d in devices):
-                raise exceptions.AuthenticationFailed(
-                    "2FA is required for this user.",
-                    code="2fa_required",
+                raise Authentication2FARequiredError(
+                    extra_data={"devices": OTPDeviceSerializer(devices, many=True).data}
                 )
 
         return super().validate(attrs)
