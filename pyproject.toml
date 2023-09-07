@@ -1,6 +1,6 @@
 [project]
 name = "django-df-auth"
-version = "1.0.0"
+version = "1.0.0-alpha.1"
 description = "Opinionated Django REST auth endpoints for JWT authentication and social accounts."
 readme = "README.md"
 authors = [{name = "Apexive OSS", email = "open-source@apexive.com"}]
