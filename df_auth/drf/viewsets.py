@@ -7,7 +7,6 @@ from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import (
     api_settings as simple_jwt_settings,
@@ -154,18 +153,9 @@ class UserViewSet(
     def get_object(self) -> Any:
         return self.request.user
 
-    @action(
-        methods=["post"],
-        detail=False,
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def invite(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(invited_by=self.request.user)
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+    def perform_create(self, serializer: UserSerializer) -> None:
+        serializer.save(
+            invited_by=self.request.user if self.request.user.is_authenticated else None
         )
 
     # TODO: add:

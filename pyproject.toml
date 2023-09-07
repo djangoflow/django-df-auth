@@ -28,7 +28,8 @@ dependencies = [
     "django-otp",
     "django-otp-twilio", #should be optional
     "twilio", # should optional
-    "social-auth-app-django" # might be optional
+    "social-auth-app-django", # might be optional
+    "django-phonenumber-field[phonenumbers]",
 ]
 
 [project.optional-dependencies]

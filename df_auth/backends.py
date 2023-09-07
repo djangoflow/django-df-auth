@@ -68,8 +68,8 @@ class BaseOTPBackend(ModelBackend):
                             for k, v in kwargs.items()
                             if k
                             in [
-                                *api_settings.USER_REQUIRED_FIELDS,
-                                *api_settings.USER_OPTIONAL_FIELDS,
+                                *api_settings.USER_CREATE_REQUIRED_FIELDS,
+                                *api_settings.USER_CREATE_OPTIONAL_FIELDS,
                             ]
                         }
                     )

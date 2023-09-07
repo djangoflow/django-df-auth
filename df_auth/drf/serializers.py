@@ -32,25 +32,15 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-def build_required_fields(*fields: str, **kwargs: Any) -> Dict[str, serializers.Field]:
-    return {
-        f: serializers.CharField(required=True, allow_blank=False, **kwargs)
-        for f in fields
-    }
-
-
-def build_optional_fields(*fields: str, **kwargs: Any) -> Dict[str, serializers.Field]:
-    return {
-        f: serializers.CharField(required=False, allow_blank=True, **kwargs)
-        for f in fields
-    }
+def build_fields(fields: Dict[str, str], **kwargs: Any) -> Dict[str, serializers.Field]:
+    return {name: import_string(klass)(**kwargs) for name, klass in fields.items()}
 
 
 class EmptySerializer(serializers.Serializer):
     pass
 
 
-class ValidateIdentityFieldsMixin:
+class ValidateIdentityFieldsMixin(serializers.Serializer):
     def validate_email(self, value: str) -> str:
         return User.objects.normalize_email(value)
 
@@ -103,14 +93,20 @@ class TokenObtainSerializer(TokenCreateSerializer, ValidateIdentityFieldsMixin):
     def get_fields(self) -> Dict[str, serializers.Field]:
         fields = super().get_fields()
         fields.update(
-            **build_required_fields(
-                *api_settings.REQUIRED_AUTH_FIELDS, write_only=True
+            **build_fields(
+                api_settings.REQUIRED_AUTH_FIELDS,
+                write_only=True,
+                required=True,
+                allow_blank=False,
             ),
-            **build_optional_fields(
-                *api_settings.OPTIONAL_AUTH_FIELDS, write_only=True
-            ),
-            **build_optional_fields(
-                *api_settings.USER_IDENTITY_FIELDS, write_only=True
+            **build_fields(
+                {
+                    **api_settings.OPTIONAL_AUTH_FIELDS,
+                    **api_settings.USER_IDENTITY_FIELDS,
+                },
+                write_only=True,
+                required=False,
+                allow_blank=True,
             ),
         )
 
@@ -124,10 +120,14 @@ class AuthBackendSerializer(serializers.Serializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
         return {
             **super().get_fields(),
-            **build_optional_fields(
-                *api_settings.USER_IDENTITY_FIELDS,
-                *api_settings.REQUIRED_AUTH_FIELDS,
-                *api_settings.OPTIONAL_AUTH_FIELDS,
+            **build_fields(
+                {
+                    **api_settings.USER_IDENTITY_FIELDS,
+                    **api_settings.REQUIRED_AUTH_FIELDS,
+                    **api_settings.OPTIONAL_AUTH_FIELDS,
+                },
+                required=False,
+                allow_blank=True,
             ),
         }
 
@@ -261,8 +261,16 @@ class OTPDeviceConfirmSerializer(serializers.Serializer):
 class UserSerializer(serializers.Serializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
         return {
-            **build_required_fields(*api_settings.USER_REQUIRED_FIELDS),
-            **build_optional_fields(*api_settings.USER_OPTIONAL_FIELDS),
+            **build_fields(
+                api_settings.USER_CREATE_REQUIRED_FIELDS,
+                required=True,
+                allow_blank=False,
+            ),
+            **build_fields(
+                api_settings.USER_CREATE_OPTIONAL_FIELDS,
+                required=False,
+                allow_blank=True,
+            ),
         }
 
     def validate_email(self, value: str) -> str:

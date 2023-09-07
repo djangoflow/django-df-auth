@@ -172,25 +172,16 @@ class UserViewSetAPITest(APITestCase):
         device = EmailDevice.objects.get(user=user, name=self.email)
         self.assertFalse(device.confirmed)
 
-    def test_unauthorized_user_cannot_invite_user(self) -> None:
-        response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-invite"),
-            {
-                "email": self.email,
-            },
-        )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
     def test_user_invites_user_by_email_phone(self) -> None:
         user_1 = User.objects.create_user(username="testuser", password="testpass")
         client = APIClient()
         client.force_authenticate(user=user_1)
 
         email_2 = "test2@te.st"
-        phone_2 = "+0987654321"
+        phone_2 = "+31645427185"
 
         response = client.post(
-            reverse("df_api_drf:v1:auth:user-invite"),
+            reverse("df_api_drf:v1:auth:user-list"),
             {
                 "phone_number": phone_2,
                 "email": email_2,
@@ -205,6 +196,17 @@ class UserViewSetAPITest(APITestCase):
         self.assertFalse(phone_device.confirmed)
         email_device = EmailDevice.objects.get(user=user_2, name=email_2)
         self.assertFalse(email_device.confirmed)
+
+    def test_user_nl_phone_strips_zero(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-list"),
+            {
+                "phone_number": "+310612345678",
+                "email": "test2@te.st",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["phone_number"], "+31612345678")  # 0 stripped
 
 
 class OtpViewSetAPITest(APITestCase):

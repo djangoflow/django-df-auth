@@ -4,16 +4,25 @@ from django.conf import settings
 from rest_framework.settings import APISettings
 
 DEFAULTS = {
-    "USER_REQUIRED_FIELDS": ("email",),
-    "USER_OPTIONAL_FIELDS": (
-        "first_name",
-        "last_name",
-        "password",
-        "phone_number",
-    ),
-    "USER_IDENTITY_FIELDS": ("username", "email", "phone_number"),
-    "REQUIRED_AUTH_FIELDS": (),
-    "OPTIONAL_AUTH_FIELDS": ("otp", "password"),
+    "USER_CREATE_REQUIRED_FIELDS": {
+        "email": "rest_framework.serializers.EmailField",
+    },
+    "USER_CREATE_OPTIONAL_FIELDS": {
+        "first_name": "rest_framework.serializers.CharField",
+        "last_name": "rest_framework.serializers.CharField",
+        "password": "rest_framework.serializers.CharField",
+        "phone_number": "phonenumber_field.serializerfields.PhoneNumberField",
+    },
+    "USER_IDENTITY_FIELDS": {
+        "username": "rest_framework.serializers.CharField",
+        "email": "rest_framework.serializers.CharField",
+        "phone_number": "phonenumber_field.serializerfields.PhoneNumberField",
+    },
+    "REQUIRED_AUTH_FIELDS": {},
+    "OPTIONAL_AUTH_FIELDS": {
+        "otp": "rest_framework.serializers.CharField",
+        "password": "rest_framework.serializers.CharField",
+    },
     "TEST_USER_EMAIL": None,
     "OTP_IDENTITY_UPDATE_FIELD": True,
     "OTP_DEVICE_MODELS": {
