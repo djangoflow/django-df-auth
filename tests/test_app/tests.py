@@ -1,3 +1,6 @@
+import json
+
+import httpretty
 from django.urls import reverse
 from django_otp.plugins.otp_email.models import EmailDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -347,6 +350,106 @@ class TokenViewSet2FAAPITest(APITestCase):
                 "username": self.user.username,
                 "password": "testpass",
                 "otp": self.device.token,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data.get("token", ""), "")
+
+
+class SocialTokenViewSetAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        self.first_name = "Test"
+        self.last_name = "User"
+        httpretty.enable(verbose=True, allow_net_connect=False)
+        httpretty.register_uri(
+            httpretty.GET,
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            body=json.dumps(
+                {
+                    "email": self.email,
+                    "name": f"{self.first_name} {self.last_name}",
+                }
+            ),
+        )
+
+    def tearDown(self) -> None:
+        httpretty.disable()
+        httpretty.reset()
+        super().tearDown()
+
+    def test_obtain_social_token_by_google_oauth2(self) -> None:
+        User.objects.create_user(
+            username="testuser",
+            password="testpass",
+            email=self.email,
+        )
+
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:social-list"),
+            {
+                "provider": "google-oauth2",
+                "access_token": "test",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data.get("token", ""), "")
+
+    def test_social_login_creates_new_user(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:social-list"),
+            {
+                "provider": "google-oauth2",
+                "access_token": "test",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data.get("token", ""), "")
+        users = list(User.objects.all())
+        self.assertEqual(len(users), 1)
+        user = users[0]
+        self.assertEqual(user.email, self.email)  # type: ignore
+        self.assertEqual(user.first_name, self.first_name)
+        self.assertEqual(user.last_name, self.last_name)
+
+    def test_social_login_fails_if_2fa_enabled(self) -> None:
+        User.objects.create_user(
+            username="testuser",
+            password="testpass",
+            email=self.email,
+            is_2fa_enabled=True,
+        )
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:social-list"),
+            {
+                "provider": "google-oauth2",
+                "access_token": "test",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["errors"][0]["code"], "2fa_required")
+        self.assertIn("devices", response.data["errors"][0]["extra_data"])
+
+    def test_obtain_social_token_with_otp_for_2fa_user(self) -> None:
+        user = User.objects.create_user(
+            username="testuser",
+            password="testpass",
+            email=self.email,
+            phone_number="+31612345678",
+            is_2fa_enabled=True,
+        )
+        device = TwilioSMSDevice.objects.create(
+            user=user, name=user.phone_number, confirmed=True, number=user.phone_number
+        )
+        device.generate_challenge()
+
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:social-list"),
+            {
+                "provider": "google-oauth2",
+                "access_token": "test",
+                "otp": device.token,
             },
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)

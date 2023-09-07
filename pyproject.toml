@@ -39,7 +39,8 @@ test = [
     "pytest-django",
     "django-stubs[compatible-mypy]",
     "black==23.7.0",
-    "ruff==0.0.284"
+    "ruff==0.0.284",
+    "httpretty",
 ]
 
 [build-system]

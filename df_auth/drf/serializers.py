@@ -37,6 +37,16 @@ def build_fields(fields: Dict[str, str], **kwargs: Any) -> Dict[str, serializers
     return {name: import_string(klass)(**kwargs) for name, klass in fields.items()}
 
 
+def check_user_2fa(user: Optional[AbstractBaseUser], otp: Optional[str]) -> None:
+    if user and getattr(user, "is_2fa_enabled", False):
+        devices = [d for d in get_otp_devices(user) if d.confirmed]
+
+        if not any(d.verify_token(otp) for d in devices):
+            raise Authentication2FARequiredError(
+                extra_data={"devices": OTPDeviceSerializer(devices, many=True).data}
+            )
+
+
 class EmptySerializer(serializers.Serializer):
     pass
 
@@ -78,15 +88,7 @@ class TokenObtainSerializer(TokenCreateSerializer, ValidateIdentityFieldsMixin):
         """
         attrs = {k: v for k, v in attrs.items() if v}
         self.user = authenticate(**attrs, **self.context)  # type: ignore
-
-        if self.user and getattr(self.user, "is_2fa_enabled", False):
-            devices = [d for d in get_otp_devices(self.user) if d.confirmed]
-            otp = attrs.get("otp")
-
-            if not any(d.verify_token(otp) for d in devices):
-                raise Authentication2FARequiredError(
-                    extra_data={"devices": OTPDeviceSerializer(devices, many=True).data}
-                )
+        check_user_2fa(self.user, attrs.get("otp"))
 
         return super().validate(attrs)
 
@@ -190,6 +192,17 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
 
     response = serializers.JSONField(read_only=True)
 
+    def get_fields(self) -> Dict[str, serializers.Field]:
+        return {
+            **super().get_fields(),
+            **build_fields(
+                api_settings.OPTIONAL_AUTH_FIELDS,
+                write_only=True,
+                required=False,
+                allow_blank=True,
+            ),
+        }
+
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         request = self.context["request"]
         user = request.user if request.user.is_authenticated else None
@@ -203,6 +216,7 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
         except (AuthCanceled, AuthForbidden):
             raise exceptions.AuthenticationFailed()
 
+        check_user_2fa(self.user, attrs.get("otp"))
         return super().validate(attrs)
 
 
