@@ -61,7 +61,7 @@ class BaseOTPBackend(ModelBackend):
                 **{self.identity_field: kwargs.get(self.identity_field)}, is_active=True
             ).first()
             if not user:
-                if api_settings.OTP_AUTO_CREATE_ACCOUNT:
+                if api_settings.OTP_AUTO_CREATE_ACCOUNT and api_settings.SIGNUP_ALLOWED:
                     user = User.objects.create(
                         **{
                             k: v

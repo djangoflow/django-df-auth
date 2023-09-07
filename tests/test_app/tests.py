@@ -264,7 +264,7 @@ class OtpViewSetWithDisabledOtpAutoCreateAPITest(APITestCase):
         api_settings.OTP_AUTO_CREATE_ACCOUNT = False
 
     def tearDown(self) -> None:
-        api_settings.OTP_AUTO_CREATE_ACCOUNT = False
+        api_settings.OTP_AUTO_CREATE_ACCOUNT = True
 
     def test_user_cannot_request_otp_without_registration(self) -> None:
         response = self.client.post(
@@ -454,3 +454,23 @@ class SocialTokenViewSetAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotEqual(response.data.get("token", ""), "")
+
+
+class DisabledSignupAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        api_settings.SIGNUP_ALLOWED = False
+
+    def tearDown(self) -> None:
+        api_settings.SIGNUP_ALLOWED = True
+
+    def test_signup_not_allowed(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-list"),
+            {
+                "password": "testpass",
+                "email": "test@te.st",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["errors"][0]["code"], "signup_not_allowed")

@@ -51,11 +51,6 @@ class EmptySerializer(serializers.Serializer):
     pass
 
 
-class ValidateIdentityFieldsMixin(serializers.Serializer):
-    def validate_email(self, value: str) -> str:
-        return User.objects.normalize_email(value)
-
-
 class TokenSerializer(serializers.Serializer):
     token = serializers.CharField(read_only=True)
     token_class = simplejwt_settings.AUTH_TOKEN_CLASSES[0]
@@ -81,7 +76,7 @@ class TokenCreateSerializer(TokenSerializer):
         return attrs
 
 
-class TokenObtainSerializer(TokenCreateSerializer, ValidateIdentityFieldsMixin):
+class TokenObtainSerializer(TokenCreateSerializer):
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Remove empty values to pass to authenticate or send_otp
@@ -148,7 +143,7 @@ class AuthBackendSerializer(serializers.Serializer):
         )
 
 
-class OTPObtainSerializer(AuthBackendSerializer, ValidateIdentityFieldsMixin):
+class OTPObtainSerializer(AuthBackendSerializer):
     backend_method_name = "generate_challenge"
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:

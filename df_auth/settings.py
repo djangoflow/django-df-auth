@@ -32,6 +32,7 @@ DEFAULTS = {
     },
     "OTP_AUTO_CREATE_ACCOUNT": True,
     "SEND_OTP_UNAUTHORIZED_USER": True,
+    "SIGNUP_ALLOWED": True,
 }
 
 IMPORT_STRINGS: List[str] = []

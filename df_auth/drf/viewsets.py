@@ -12,7 +12,11 @@ from rest_framework_simplejwt.settings import (
     api_settings as simple_jwt_settings,
 )
 
-from ..exceptions import DfAuthValidationError, WrongOTPError
+from ..exceptions import (
+    DfAuthValidationError,
+    SignupNotAllowedError,
+    WrongOTPError,
+)
 from ..permissions import IsUnauthenticated
 from ..settings import api_settings
 from ..utils import get_otp_device_models, get_otp_devices
@@ -149,6 +153,12 @@ class UserViewSet(
 ):
     serializer_class = UserSerializer
     permission_classes = (permissions.AllowAny,)
+
+    def create(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if not api_settings.SIGNUP_ALLOWED:
+            raise SignupNotAllowedError()
+
+        return super().create(request, *args, **kwargs)
 
     def get_object(self) -> Any:
         return self.request.user

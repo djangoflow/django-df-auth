@@ -2,6 +2,7 @@ from df_api_drf.exceptions import ExtraDataAPIException
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.exceptions import (
+    PermissionDenied,
     ValidationError,
 )
 
@@ -82,3 +83,8 @@ class Authentication2FARequiredError(ExtraDataAPIException):
     default_detail = "2FA is required for this user."
     default_code = "2fa_required"
     status_code = status.HTTP_401_UNAUTHORIZED
+
+
+class SignupNotAllowedError(PermissionDenied):
+    default_detail = "Signup is disabled."
+    default_code = "signup_not_allowed"
