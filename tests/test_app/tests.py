@@ -456,6 +456,48 @@ class SocialTokenViewSetAPITest(APITestCase):
         self.assertNotEqual(response.data.get("token", ""), "")
 
 
+class SocialTokenViewSetWithoutNameAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        self.first_name = "Test"
+        self.last_name = "User"
+        httpretty.enable(verbose=True, allow_net_connect=False)
+        httpretty.register_uri(
+            httpretty.GET,
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            body=json.dumps(
+                {
+                    "email": self.email,
+                }
+            ),
+        )
+
+    def tearDown(self) -> None:
+        httpretty.disable()
+        httpretty.reset()
+        super().tearDown()
+
+    def test_social_login_accepts_first_last_names_from_body(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:social-list"),
+            {
+                "provider": "google-oauth2",
+                "access_token": "test",
+                "first_name": self.first_name,
+                "last_name": self.last_name,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data.get("token", ""), "")
+        users = list(User.objects.all())
+        self.assertEqual(len(users), 1)
+        user = users[0]
+        self.assertEqual(user.email, self.email)  # type: ignore
+        self.assertEqual(user.first_name, self.first_name)
+        self.assertEqual(user.last_name, self.last_name)
+
+
 class DisabledSignupAPITest(APITestCase):
     def setUp(self) -> None:
         self.client = APIClient()

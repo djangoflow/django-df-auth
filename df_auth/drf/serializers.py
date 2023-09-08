@@ -191,7 +191,10 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
         return {
             **super().get_fields(),
             **build_fields(
-                api_settings.OPTIONAL_AUTH_FIELDS,
+                {
+                    **api_settings.USER_SOCIAL_AUTH_FIELDS,
+                    **api_settings.OPTIONAL_AUTH_FIELDS,
+                },
                 write_only=True,
                 required=False,
                 allow_blank=True,
@@ -210,6 +213,16 @@ class SocialTokenObtainSerializer(TokenCreateSerializer):
             self.user = request.backend.do_auth(attrs["access_token"], user=user)
         except (AuthCanceled, AuthForbidden):
             raise exceptions.AuthenticationFailed()
+
+        update_fields = []
+        for attr in api_settings.USER_SOCIAL_AUTH_FIELDS:
+            if not getattr(self.user, attr, None):
+                value = attrs.get(attr, None)
+                if value:
+                    setattr(self.user, attr, value)
+                    update_fields.append(attr)
+        if update_fields:
+            self.user.save(update_fields=update_fields)
 
         check_user_2fa(self.user, attrs.get("otp"))
         return super().validate(attrs)
@@ -271,12 +284,12 @@ class UserSerializer(serializers.Serializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
         return {
             **build_fields(
-                api_settings.USER_CREATE_REQUIRED_FIELDS,
+                api_settings.USER_SIGNUP_REQUIRED_FIELDS,
                 required=True,
                 allow_blank=False,
             ),
             **build_fields(
-                api_settings.USER_CREATE_OPTIONAL_FIELDS,
+                api_settings.USER_SIGNUP_OPTIONAL_FIELDS,
                 required=False,
                 allow_blank=True,
             ),
