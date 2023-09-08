@@ -251,8 +251,11 @@ class OTPDeviceSerializer(serializers.Serializer):
     key = serializers.SerializerMethodField()
 
     def get_key(self, obj: Device) -> Optional[str]:
-        # We need `key` field for TOTP devices
-        return getattr(obj, "key", None)
+        # We need `key` field for TOTP devices on `create` action
+        if self.context["view"].action == "create":
+            return getattr(obj, "key", None)
+
+        return None
 
     def create(self, validated_data: Dict[str, Any]) -> Device:
         device_type = validated_data.pop("type")

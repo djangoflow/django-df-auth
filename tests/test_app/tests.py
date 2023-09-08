@@ -48,6 +48,27 @@ class OtpDeviceViewSetAPITest(APITestCase):
         self.assertFalse(device.confirmed)
         self.assertEqual(device.email, self.email)
 
+    def test_create_totp_device(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:otp-device-list"),
+            {
+                "type": "totp",
+                "name": "totp",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # Check that a key was returned
+        self.assertEqual(response.data["type"], "totp")
+        self.assertIsNotNone(response.data["key"])
+        self.assertGreater(len(response.data["key"]), 0)
+
+        # Check we will not return the key again
+        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["type"], "totp")
+        self.assertIsNone(response.data["results"][0]["key"])
+
     def test_confirm_email_device(self) -> None:
         email_device = EmailDevice.objects.create(
             user=self.user,
