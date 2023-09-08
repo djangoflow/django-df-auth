@@ -252,7 +252,7 @@ class OTPDeviceSerializer(serializers.Serializer):
 
     def get_key(self, obj: Device) -> Optional[str]:
         # We need `key` field for TOTP devices on `create` action
-        if self.context["view"].action == "create":
+        if "view" in self.context and self.context["view"].action == "create":
             return getattr(obj, "key", None)
 
         return None
