@@ -280,7 +280,7 @@ class OTPDeviceConfirmSerializer(serializers.Serializer):
     code = serializers.CharField(required=True, write_only=True)
 
 
-class UserSerializer(serializers.Serializer):
+class UserSignupSerializer(serializers.Serializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
         return {
             **build_fields(

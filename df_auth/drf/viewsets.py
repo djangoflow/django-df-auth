@@ -27,7 +27,7 @@ from .serializers import (
     SocialTokenObtainSerializer,
     TokenObtainSerializer,
     TokenSerializer,
-    UserSerializer,
+    UserSignupSerializer,
 )
 
 
@@ -151,7 +151,7 @@ class UserViewSet(
     viewsets.GenericViewSet,
     viewsets.mixins.CreateModelMixin,
 ):
-    serializer_class = UserSerializer
+    serializer_class = UserSignupSerializer
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
@@ -163,7 +163,7 @@ class UserViewSet(
     def get_object(self) -> Any:
         return self.request.user
 
-    def perform_create(self, serializer: UserSerializer) -> None:
+    def perform_create(self, serializer: UserSignupSerializer) -> None:
         serializer.save(
             invited_by=self.request.user if self.request.user.is_authenticated else None
         )
