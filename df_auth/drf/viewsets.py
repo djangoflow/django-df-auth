@@ -98,7 +98,6 @@ class OtpDeviceViewSet(
     viewsets.mixins.DestroyModelMixin,
     viewsets.mixins.RetrieveModelMixin,
     viewsets.mixins.CreateModelMixin,
-    viewsets.mixins.UpdateModelMixin,
 ):
     throttle_scope = "otp"
     serializer_class = OTPDeviceSerializer
