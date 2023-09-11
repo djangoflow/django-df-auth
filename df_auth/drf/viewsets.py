@@ -21,6 +21,7 @@ from ..permissions import IsUnauthenticated
 from ..settings import api_settings
 from ..utils import get_otp_device_models, get_otp_devices
 from .serializers import (
+    ChangePasswordSerializer,
     OTPDeviceConfirmSerializer,
     OTPDeviceSerializer,
     OTPObtainSerializer,
@@ -168,6 +169,15 @@ class UserViewSet(
         serializer.save(
             created_by=self.request.user if self.request.user.is_authenticated else None
         )
+
+    @action(detail=True, methods=["POST"], serializer_class=ChangePasswordSerializer)
+    def set_password(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        serializer = self.get_serializer(self.get_object(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return response.Response({})
 
     # TODO: add:
     # update = change password

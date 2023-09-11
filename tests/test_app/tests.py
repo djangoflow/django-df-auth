@@ -272,6 +272,36 @@ class UserViewSetAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["phone_number"], self.phone_number)
 
+    def test_set_password_wrong_old_password_raises_error(self) -> None:
+        user = User.objects.create_user(username="testuser", password="testpass")
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            reverse("df_api_drf:v1:auth:user-set-password", kwargs={"pk": user.pk}),
+            {
+                "old_password": "wrong",
+                "new_password": "new",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["errors"][0]["code"], "invalid")
+
+    def test_set_password_correct_old_password_sets_new_password(self) -> None:
+        user = User.objects.create_user(username="testuser", password="testpass")
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            reverse("df_api_drf:v1:auth:user-set-password", kwargs={"pk": user.pk}),
+            {
+                "old_password": "testpass",
+                "new_password": "new",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(user.check_password("new"))
+
 
 class OtpViewSetAPITest(APITestCase):
     def setUp(self) -> None:
