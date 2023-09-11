@@ -280,7 +280,26 @@ class OTPDeviceSerializer(serializers.Serializer):
 
 
 class OTPDeviceConfirmSerializer(serializers.Serializer):
-    code = serializers.CharField(required=True, write_only=True)
+    otp = serializers.CharField(required=True, write_only=True)
+
+    def validate_otp(self, value: str) -> str:
+        if not self.instance.verify_token(value):
+            raise serializers.ValidationError("Invalid OTP code")
+        return value
+
+    def update(self, instance: Device, validated_data: Dict[str, Any]) -> Device:
+        instance.confirmed = True
+        instance.save()
+
+        if api_settings.OTP_IDENTITY_UPDATE_FIELD:
+            # TODO: create a common interface for this
+            if isinstance(instance, EmailDevice):
+                instance.user.email = instance.name
+            elif isinstance(instance, TwilioSMSDevice):
+                instance.user.phone_number = instance.number
+            instance.user.save()
+
+        return instance
 
 
 class UserIdentitySerializer(serializers.Serializer):

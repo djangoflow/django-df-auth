@@ -3,8 +3,6 @@ from typing import Any, List, Type
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django_otp.models import Device
-from django_otp.plugins.otp_email.models import EmailDevice
-from otp_twilio.models import TwilioSMSDevice
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
@@ -15,7 +13,6 @@ from rest_framework_simplejwt.settings import (
 from ..exceptions import (
     DfAuthValidationError,
     SignupNotAllowedError,
-    WrongOTPError,
 )
 from ..permissions import IsUnauthenticated
 from ..settings import api_settings
@@ -101,6 +98,7 @@ class OtpDeviceViewSet(
     viewsets.mixins.DestroyModelMixin,
     viewsets.mixins.RetrieveModelMixin,
     viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.UpdateModelMixin,
 ):
     throttle_scope = "otp"
     serializer_class = OTPDeviceSerializer
@@ -129,22 +127,11 @@ class OtpDeviceViewSet(
         serializer_class=OTPDeviceConfirmSerializer,
     )
     def confirm(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        otp = self.request.data.get("otp")
-        device: Device = self.get_object()
-        if not device.verify_token(otp):
-            raise WrongOTPError()
-
-        device.confirmed = True
-        device.save()
-
-        if api_settings.OTP_IDENTITY_UPDATE_FIELD:
-            # TODO: create a common interface for this
-            if isinstance(device, EmailDevice):
-                device.user.email = device.name
-            elif isinstance(device, TwilioSMSDevice):
-                device.user.phone_number = device.number
-            device.user.save()
-
+        serializer = OTPDeviceConfirmSerializer(
+            data=request.data, instance=self.get_object()
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return response.Response({})
 
 
