@@ -1,6 +1,7 @@
 import json
 
 import httpretty
+from django.db import IntegrityError
 from django.urls import reverse
 from django_otp.plugins.otp_email.models import EmailDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -9,7 +10,7 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from df_auth.exceptions import UserDoesNotExistError
-from df_auth.settings import api_settings
+from df_auth.settings import DEFAULTS, api_settings
 from tests.test_app.models import User
 
 
@@ -301,6 +302,109 @@ class UserViewSetAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(user.check_password("new"))
+
+    def test_user_cannot_signup_if_email_already_taken(self) -> None:
+        User.objects.create_user(
+            username="testuser", password="testpass", email=self.email
+        )
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-list"),
+            {
+                "email": self.email,
+                "password": "testpass",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["errors"][0]["code"], "invalid")
+
+    def test_user_cannot_signup_if_phone_number_already_taken(self) -> None:
+        User.objects.create_user(
+            username="testuser", password="testpass", phone_number=self.phone_number
+        )
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-list"),
+            {
+                "phone_number": self.phone_number,
+                "password": "testpass",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["errors"][0]["code"], "invalid")
+
+
+class UserViewSetWithUsernameOnlyIdentityFieldAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        self.phone_number = "+31612345678"
+        api_settings.USER_IDENTITY_FIELDS = {
+            "username": "rest_framework.serializers.CharField",
+        }
+        api_settings.USER_OPTIONAL_FIELDS = {
+            "first_name": "rest_framework.serializers.CharField",
+            "last_name": "rest_framework.serializers.CharField",
+            "password": "rest_framework.serializers.CharField",
+            "email": "rest_framework.serializers.CharField",
+            "phone_number": "phonenumber_field.serializerfields.PhoneNumberField",
+        }
+
+    def tearDown(self) -> None:
+        api_settings.USER_IDENTITY_FIELDS = DEFAULTS["USER_IDENTITY_FIELDS"]
+        api_settings.USER_OPTIONAL_FIELDS = DEFAULTS["USER_OPTIONAL_FIELDS"]
+
+    def test_user_can_signup_with_the_same_email(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-list"),
+            {
+                "username": "test1",
+                "email": self.email,
+                "password": "testpass",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["email"], self.email)
+        self.assertEqual(response.data["username"], "test1")
+
+        # Validation allows the same email to be used again
+        # But we will get an IntegrityError from the database
+        self.assertRaises(
+            IntegrityError,
+            lambda: self.client.post(
+                reverse("df_api_drf:v1:auth:user-list"),
+                {
+                    "username": "test2",
+                    "email": self.email,
+                    "password": "testpass",
+                },
+            ),
+        )
+
+    def test_user_can_signup_with_the_same_phone_number(self) -> None:
+        response = self.client.post(
+            reverse("df_api_drf:v1:auth:user-list"),
+            {
+                "username": "test1",
+                "phone_number": self.phone_number,
+                "password": "testpass",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["phone_number"], self.phone_number)
+        self.assertEqual(response.data["username"], "test1")
+
+        # Validation allows the same phone number to be used again
+        # But we will get an IntegrityError from the database
+        self.assertRaises(
+            IntegrityError,
+            lambda: self.client.post(
+                reverse("df_api_drf:v1:auth:user-list"),
+                {
+                    "username": "test2",
+                    "phone_number": self.phone_number,
+                    "password": "testpass",
+                },
+            ),
+        )
 
 
 class OtpViewSetAPITest(APITestCase):

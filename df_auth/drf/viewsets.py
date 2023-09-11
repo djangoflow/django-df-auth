@@ -178,10 +178,3 @@ class UserViewSet(
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return response.Response({})
-
-    # TODO: add:
-    # update = change password
-    # change_password = update
-    # reset_password ?
-
-    # Update -> updating identity fields (check devices)

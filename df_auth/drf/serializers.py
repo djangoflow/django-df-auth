@@ -301,6 +301,8 @@ class UserIdentitySerializer(serializers.Serializer):
 
     def validate_email(self, value: str) -> str:
         # TODO: check for black list
+
+        # If User has no confirmed EmailDevice on update
         if (
             self.instance
             and not self.instance.emaildevice_set.filter(
@@ -309,7 +311,13 @@ class UserIdentitySerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError("You need to confirm your email first.")
 
-        # Optional check if there no such EmailDevice
+        if (
+            self.instance is None
+            and "email" in api_settings.USER_IDENTITY_FIELDS
+            and User.objects.filter(email=value).exists()
+        ):
+            raise serializers.ValidationError("User with this email already exists.")
+
         return User.objects.normalize_email(value)
 
     def validate_username(self, value: str) -> str:
@@ -327,7 +335,16 @@ class UserIdentitySerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "You need to confirm your phone number first."
             )
-        # Optional check if there no such TwilioSMSDevice
+
+        if (
+            self.instance is None
+            and "phone_number" in api_settings.USER_IDENTITY_FIELDS
+            and User.objects.filter(phone_number=value).exists()
+        ):
+            raise serializers.ValidationError(
+                "User with this phone number already exists."
+            )
+
         return value
 
     def update(self, instance: User, validated_data: Dict[str, Any]) -> User:
