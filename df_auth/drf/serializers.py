@@ -152,7 +152,7 @@ class OTPObtainSerializer(AuthBackendSerializer):
           - if request.user authorized else
           - if user = authenticate(**attrs, **self.context)
           - else not authorized
-        - if not authorized + SEND_OTP_UNAUTHORIZED_USER=False -> raise an error
+        - if not authorized + OTP_SEND_UNAUTHORIZED_USER=False -> raise an error
         - send otp for the device
         """
         attrs = {k: v for k, v in attrs.items() if v}
@@ -163,8 +163,8 @@ class OTPObtainSerializer(AuthBackendSerializer):
         else:
             user = authenticate(**attrs, **self.context)
 
-        # if not authorized + SEND_OTP_UNAUTHORIZED_USER=False -> raise an error
-        if not user and not api_settings.SEND_OTP_UNAUTHORIZED_USER:
+        # if not authorized + OTP_SEND_UNAUTHORIZED_USER=False -> raise an error
+        if not user and not api_settings.OTP_SEND_UNAUTHORIZED_USER:
             raise exceptions.AuthenticationFailed(
                 "Please log in to request your OTP code.",
                 code="unauthorized_otp_request",
@@ -283,20 +283,16 @@ class OTPDeviceConfirmSerializer(serializers.Serializer):
     code = serializers.CharField(required=True, write_only=True)
 
 
-class UserSignupSerializer(serializers.Serializer):
+class UserIdentitySerializer(serializers.Serializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
-        fields = {
-            **build_fields(
-                api_settings.USER_SIGNUP_REQUIRED_FIELDS,
-                required=True,
-                allow_blank=False,
-            ),
-            **build_fields(
-                api_settings.USER_SIGNUP_OPTIONAL_FIELDS,
-                required=False,
-                allow_blank=True,
-            ),
-        }
+        fields = build_fields(
+            {
+                **api_settings.USER_OPTIONAL_FIELDS,
+                **api_settings.USER_IDENTITY_FIELDS,
+            },
+            required=False,
+            allow_blank=True,
+        )
 
         if "password" in fields:
             fields["password"].write_only = True
@@ -305,6 +301,14 @@ class UserSignupSerializer(serializers.Serializer):
 
     def validate_email(self, value: str) -> str:
         # TODO: check for black list
+        if (
+            self.instance
+            and not self.instance.emaildevice_set.filter(
+                email=value, confirmed=True
+            ).exists()
+        ):
+            raise serializers.ValidationError("You need to confirm your email first.")
+
         # Optional check if there no such EmailDevice
         return User.objects.normalize_email(value)
 
@@ -314,8 +318,23 @@ class UserSignupSerializer(serializers.Serializer):
 
     def validate_phone_number(self, value: str) -> str:
         # TODO: check for black list
+        if (
+            self.instance
+            and not self.instance.twiliosmsdevice_set.filter(
+                number=value, confirmed=True
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                "You need to confirm your phone number first."
+            )
         # Optional check if there no such TwilioSMSDevice
         return value
+
+    def update(self, instance: User, validated_data: Dict[str, Any]) -> User:
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
     def create(self, validated_data: Any) -> User:
         if not validated_data.get("username"):
@@ -343,3 +362,18 @@ class UserSignupSerializer(serializers.Serializer):
             )
 
         return user
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    def validate_old_password(self, value: str) -> str:
+        if not self.instance.check_password(value):
+            raise serializers.ValidationError("Old password is incorrect.")
+        return value
+
+    def update(self, instance: User, validated_data: Dict[str, Any]) -> User:
+        instance.set_password(validated_data["new_password"])
+        instance.save()
+        return instance

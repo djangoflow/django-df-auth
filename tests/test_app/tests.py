@@ -165,7 +165,7 @@ class UserViewSetAPITest(APITestCase):
         # Create a test user and set up any other objects you need
         self.client = APIClient()
         self.email = "test@te.st"
-        self.phone_number = "+1234567890"
+        self.phone_number = "+31612345678"
         self.password = "passwd"
 
     def test_create_user_with_email_password(self) -> None:
@@ -206,7 +206,7 @@ class UserViewSetAPITest(APITestCase):
         self.assertEqual(response.data["phone_number"], phone_2)
 
         user_2 = User.objects.get(phone_number=phone_2)
-        self.assertEqual(user_2.invited_by, user_1)
+        self.assertEqual(user_2.created_by, user_1)
         phone_device = TwilioSMSDevice.objects.get(user=user_2, name=phone_2)
         self.assertFalse(phone_device.confirmed)
         email_device = EmailDevice.objects.get(user=user_2, name=email_2)
@@ -222,6 +222,55 @@ class UserViewSetAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["phone_number"], "+31612345678")  # 0 stripped
+
+    def test_user_can_update_first_name(self) -> None:
+        user = User.objects.create_user(username="testuser", password="testpass")
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk}),
+            {
+                "first_name": "test",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["first_name"], "test")
+
+    def test_user_cannot_update_phone_number_if_not_verified(self) -> None:
+        user = User.objects.create_user(username="testuser", password="testpass")
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk}),
+            {
+                "phone_number": self.phone_number,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["errors"][0]["code"], "invalid")
+
+    def test_user_can_update_phone_number_if_verified(self) -> None:
+        user = User.objects.create_user(username="testuser", password="testpass")
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        TwilioSMSDevice.objects.create(
+            user=user,
+            name=self.phone_number,
+            number=self.phone_number,
+            confirmed=True,
+        )
+
+        response = client.patch(
+            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk}),
+            {
+                "phone_number": self.phone_number,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["phone_number"], self.phone_number)
 
 
 class OtpViewSetAPITest(APITestCase):
@@ -247,10 +296,10 @@ class OtpViewSetWithDisabledAnonOtpAPITest(APITestCase):
     def setUp(self) -> None:
         self.client = APIClient()
         self.email = "test@te.st"
-        api_settings.SEND_OTP_UNAUTHORIZED_USER = False
+        api_settings.OTP_SEND_UNAUTHORIZED_USER = False
 
     def tearDown(self) -> None:
-        api_settings.SEND_OTP_UNAUTHORIZED_USER = True
+        api_settings.OTP_SEND_UNAUTHORIZED_USER = True
 
     def test_unauthorized_user_cannot_request_otp(self) -> None:
         user = User.objects.create_user(

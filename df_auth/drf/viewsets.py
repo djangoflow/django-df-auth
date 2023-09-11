@@ -27,7 +27,7 @@ from .serializers import (
     SocialTokenObtainSerializer,
     TokenObtainSerializer,
     TokenSerializer,
-    UserSignupSerializer,
+    UserIdentitySerializer,
 )
 
 
@@ -150,8 +150,9 @@ class OtpDeviceViewSet(
 class UserViewSet(
     viewsets.GenericViewSet,
     viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.UpdateModelMixin,
 ):
-    serializer_class = UserSignupSerializer
+    serializer_class = UserIdentitySerializer
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
@@ -163,7 +164,7 @@ class UserViewSet(
     def get_object(self) -> Any:
         return self.request.user
 
-    def perform_create(self, serializer: UserSignupSerializer) -> None:
+    def perform_create(self, serializer: UserIdentitySerializer) -> None:
         serializer.save(
             created_by=self.request.user if self.request.user.is_authenticated else None
         )
