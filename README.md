@@ -32,3 +32,7 @@ The OTP supports following flows:
 - otp (email/phone/static/totp) verification - can also be used for confirming email/phone
 - 2FA
 - magic signin link
+
+Registration
+Signup
+2FA Management

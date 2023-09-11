@@ -4,14 +4,10 @@ from django.conf import settings
 from rest_framework.settings import APISettings
 
 DEFAULTS = {
-    "USER_SIGNUP_REQUIRED_FIELDS": {
-        "email": "rest_framework.serializers.EmailField",
-    },
-    "USER_SIGNUP_OPTIONAL_FIELDS": {
+    "USER_OPTIONAL_FIELDS": {
         "first_name": "rest_framework.serializers.CharField",
         "last_name": "rest_framework.serializers.CharField",
         "password": "rest_framework.serializers.CharField",
-        "phone_number": "phonenumber_field.serializerfields.PhoneNumberField",
     },
     "USER_SOCIAL_AUTH_FIELDS": {
         "first_name": "rest_framework.serializers.CharField",
@@ -35,7 +31,7 @@ DEFAULTS = {
         "sms": "otp_twilio.models.TwilioSMSDevice",
     },
     "OTP_AUTO_CREATE_ACCOUNT": True,
-    "SEND_OTP_UNAUTHORIZED_USER": True,
+    "OTP_SEND_UNAUTHORIZED_USER": True,
     "SIGNUP_ALLOWED": True,
 }
 

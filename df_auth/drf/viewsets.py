@@ -165,7 +165,7 @@ class UserViewSet(
 
     def perform_create(self, serializer: UserSignupSerializer) -> None:
         serializer.save(
-            invited_by=self.request.user if self.request.user.is_authenticated else None
+            created_by=self.request.user if self.request.user.is_authenticated else None
         )
 
     # TODO: add:
