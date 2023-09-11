@@ -178,6 +178,7 @@ class UserViewSetAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["email"], self.email)
+        self.assertNotIn("password", response.data)
 
         user = User.objects.get(email=self.email)
         self.assertTrue(user.check_password(self.password))

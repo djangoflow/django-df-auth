@@ -285,7 +285,7 @@ class OTPDeviceConfirmSerializer(serializers.Serializer):
 
 class UserSignupSerializer(serializers.Serializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
-        return {
+        fields = {
             **build_fields(
                 api_settings.USER_SIGNUP_REQUIRED_FIELDS,
                 required=True,
@@ -297,6 +297,11 @@ class UserSignupSerializer(serializers.Serializer):
                 allow_blank=True,
             ),
         }
+
+        if "password" in fields:
+            fields["password"].write_only = True
+
+        return fields
 
     def validate_email(self, value: str) -> str:
         # TODO: check for black list
