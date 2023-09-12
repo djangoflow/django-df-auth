@@ -3,6 +3,8 @@ from typing import Any, List, Type
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django_otp.models import Device
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.settings import import_string
@@ -92,6 +94,17 @@ class SocialTokenViewSet(ValidationOnlyCreateViewSet):
         return self.create(request, *args, **kwargs)
 
 
+otp_device_detail_params = [
+    OpenApiParameter(
+        name="type",
+        type=OpenApiTypes.STR,
+        location=OpenApiParameter.QUERY,
+        description="OTP Device type",
+        required=True,
+    )
+]
+
+
 class OtpDeviceViewSet(
     viewsets.GenericViewSet,
     viewsets.mixins.ListModelMixin,
@@ -120,6 +133,7 @@ class OtpDeviceViewSet(
             user=self.request.user, pk=self.kwargs["pk"]
         )
 
+    @extend_schema(parameters=otp_device_detail_params)
     @action(
         methods=["post"],
         detail=True,
@@ -133,9 +147,18 @@ class OtpDeviceViewSet(
         serializer.save()
         return response.Response({})
 
+    @extend_schema(parameters=otp_device_detail_params)
+    def destroy(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(parameters=otp_device_detail_params)
+    def retrieve(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        return super().retrieve(request, *args, **kwargs)
+
 
 class UserViewSet(
     viewsets.GenericViewSet,
+    viewsets.mixins.RetrieveModelMixin,
     viewsets.mixins.CreateModelMixin,
     viewsets.mixins.UpdateModelMixin,
 ):

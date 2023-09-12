@@ -59,16 +59,18 @@ class OtpDeviceViewSetAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # Check that a key was returned
+        device = TOTPDevice.objects.filter(user=self.user).first()
+        self.assertIsNotNone(device)
         self.assertEqual(response.data["type"], "totp")
-        self.assertIsNotNone(response.data["key"])
-        self.assertGreater(len(response.data["key"]), 0)
+        self.assertIn("url", response.data["extra_data"])
+        self.assertEqual(device.config_url, response.data["extra_data"]["url"])
 
         # Check we will not return the key again
         response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["type"], "totp")
-        self.assertIsNone(response.data["results"][0]["key"])
+        self.assertNotIn("url", response.data["results"][0]["extra_data"])
 
     def test_confirm_email_device(self) -> None:
         email_device = EmailDevice.objects.create(
@@ -187,6 +189,22 @@ class UserViewSetAPITest(APITestCase):
 
         device = EmailDevice.objects.get(user=user, name=self.email)
         self.assertFalse(device.confirmed)
+
+    def test_retrieve_user(self) -> None:
+        user = User.objects.create_user(
+            username=self.email,
+            email=self.email,
+            password=self.password,
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.get(
+            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["email"], self.email)
+        self.assertNotIn("password", response.data)
 
     def test_user_invites_user_by_email_phone(self) -> None:
         user_1 = User.objects.create_user(username="testuser", password="testpass")

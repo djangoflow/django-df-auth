@@ -8,6 +8,7 @@ from django.db.models import Model
 from django.utils.module_loading import import_string
 from django_otp.models import Device
 from django_otp.plugins.otp_email.models import EmailDevice
+from django_otp.plugins.otp_totp.models import TOTPDevice
 from otp_twilio.models import TwilioSMSDevice
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.settings import (
@@ -248,14 +249,20 @@ class OTPDeviceSerializer(serializers.Serializer):
     name = serializers.CharField(required=False)
     type = OTPDeviceTypeField(choices=get_otp_device_choices(), source="*")
     confirmed = serializers.BooleanField(read_only=True)
-    key = serializers.SerializerMethodField()
+    extra_data = serializers.SerializerMethodField()
 
-    def get_key(self, obj: Device) -> Optional[str]:
-        # We need `key` field for TOTP devices on `create` action
-        if "view" in self.context and self.context["view"].action == "create":
-            return getattr(obj, "key", None)
+    def get_extra_data(self, obj: Device) -> Dict[str, str]:
+        # We need `url` field for TOTP devices on `create` action
+        if (
+            isinstance(obj, TOTPDevice)
+            and "view" in self.context
+            and self.context["view"].action == "create"
+        ):
+            return {
+                "url": obj.config_url,
+            }
 
-        return None
+        return {}
 
     def create(self, validated_data: Dict[str, Any]) -> Device:
         device_type = validated_data.pop("type")
