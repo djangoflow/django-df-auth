@@ -373,7 +373,7 @@ class UserIdentitySerializer(serializers.Serializer):
         return instance
 
     def create(self, validated_data: Any) -> User:
-        if not validated_data.get("username"):
+        if not validated_data.get("username") and getattr(User, "username", False):
             validated_data["username"] = (
                 validated_data["email"] or validated_data["phone_number"]
             )
