@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 DF_AUTH_APPS_BASE = [
     "df_auth",
     "rest_framework_simplejwt",
@@ -21,6 +23,24 @@ DF_AUTH_INSTALLED_APPS = [
     *DF_AUTH_APPS_OTP,
     *DF_AUTH_APPS_SOCIAL,
 ]
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=14),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.SlidingToken",),
+    "BLACKLIST_AFTER_ROTATION": False,
+    "JTI_CLAIM": "jti",
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
+    "ROTATE_REFRESH_TOKENS": True,
+    "SLIDING_TOKEN_LIFETIME": timedelta(days=14),
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=14),
+    "TOKEN_TYPE_CLAIM": "sliding",
+    "USER_ID_CLAIM": "user_id",
+    "USER_ID_FIELD": "id",
+    "TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
+    "TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
+}
 
 SOCIAL_AUTH_PIPELINE = [
     # Get the information we can about the user and return it in a simple
