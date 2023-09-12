@@ -1,5 +1,3 @@
-from typing import List
-
 from django.conf import settings
 from rest_framework.settings import APISettings
 
@@ -35,6 +33,4 @@ DEFAULTS = {
     "SIGNUP_ALLOWED": True,
 }
 
-IMPORT_STRINGS: List[str] = []
-
-api_settings = APISettings(getattr(settings, "DF_AUTH", IMPORT_STRINGS), DEFAULTS)
+api_settings = APISettings(getattr(settings, "DF_AUTH", None), DEFAULTS)
