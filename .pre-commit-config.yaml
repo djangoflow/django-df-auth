@@ -1,4 +1,4 @@
-exclude: 'docs|node_modules|migrations|.git|.tox'
+exclude: 'docs|node_modules|.git|.tox'
 default_stages: [commit]
 
 repos:
@@ -10,22 +10,21 @@ repos:
       - id: check-yaml
 
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 23.7.0
     hooks:
       - id: black
 
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.11.5
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.284
     hooks:
-      - id: isort
-        args: ["--profile", "black", "--filter-files"]
+      - id: ruff
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.4.1
     hooks:
-      - id: flake8
-        args: ['--config=setup.cfg']
-        additional_dependencies: [flake8-isort]
+      - id: mypy
+        language: system
 
 
 # sets up .pre-commit-ci.yaml to ensure pre-commit dependencies stay up to date

@@ -1,6 +1,8 @@
-from rest_framework.permissions import BasePermission
+from typing import Any
+
+from rest_framework.permissions import IsAuthenticated
 
 
-class IsUnauthenticated(BasePermission):
-    def has_permission(self, request, view):
-        return not request.user.is_authenticated
+class IsUnauthenticated(IsAuthenticated):
+    def has_permission(self, *args: Any, **kwargs: Any) -> bool:
+        return not super().has_permission(*args, **kwargs)

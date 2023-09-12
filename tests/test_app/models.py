@@ -1,3 +1,5 @@
+from typing import Any, List, Optional
+
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -9,26 +11,26 @@ class UserManager(BaseUserManager):
     use_in_migrations = True
 
     @classmethod
-    def normalize_email(cls, email):
+    def normalize_email(cls, email: Optional[str]) -> str:
         return super().normalize_email(email).lower()
 
-    def _create_user(self, email, password, **extra_fields):
+    def _create_user(self, **extra_fields: Any) -> AbstractUser:
         """Create and save a User with the given email and password."""
-        if not email:
-            raise ValueError("The given email must be set")
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        user = self.model(**extra_fields)
+        if extra_fields.get("email"):
+            user.email = self.normalize_email(extra_fields.get("email"))
+        if extra_fields.get("password") is not None:
+            user.set_password(extra_fields.get("password"))
         user.save(using=self._db)
-        return user
+        return user  # type: ignore
 
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, **extra_fields: Any) -> AbstractUser:
         """Create and save a regular User with the given email and password."""
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(**extra_fields)
 
-    def create_superuser(self, email, password, **extra_fields):
+    def create_superuser(self, password: str, **extra_fields: Any) -> AbstractUser:
         """Create and save a SuperUser with the given email and password."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -38,13 +40,18 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        return self._create_user(email, password, **extra_fields)
+        extra_fields["password"] = password
+
+        return self._create_user(**extra_fields)
 
 
 class User(AbstractUser):
-    objects = UserManager()
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
-    username = None
-    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
+    objects = UserManager()  # type: ignore
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS: List[str] = []
+    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)  # type: ignore
     phone_number = models.CharField(max_length=32, unique=True, null=True, blank=True)
+    created_by = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    is_2fa_enabled = models.BooleanField(default=False)

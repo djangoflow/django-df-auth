@@ -1,13 +1,13 @@
-from django import template
-
 import base64
+from typing import Dict
 
+from django import template
 
 register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
-def auth_magic_link(context):
+def auth_magic_link(context: Dict) -> str:
     """
     :return: context("base_url") + base64.urlsafe_b64encode(context["username")/context("token"))
     """
