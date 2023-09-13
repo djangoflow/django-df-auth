@@ -1,4 +1,4 @@
-from typing import Any, List, Type
+from typing import Any, Iterable, List, Type
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
@@ -7,6 +7,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import permissions, response, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import BasePermission
 from rest_framework.settings import import_string
 from rest_framework_simplejwt.settings import (
     api_settings as simple_jwt_settings,
@@ -14,10 +15,8 @@ from rest_framework_simplejwt.settings import (
 
 from ..exceptions import (
     DfAuthValidationError,
-    SignupNotAllowedError,
 )
-from ..permissions import IsUnauthenticated
-from ..settings import api_settings
+from ..permissions import IsUnauthenticated, IsUserCreateAllowed
 from ..utils import get_otp_device_models, get_otp_devices
 from .serializers import (
     ChangePasswordSerializer,
@@ -163,13 +162,13 @@ class UserViewSet(
     viewsets.mixins.UpdateModelMixin,
 ):
     serializer_class = UserIdentitySerializer
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.IsAuthenticated,)
+    http_method_names = ["get", "post", "patch"]
 
-    def create(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not api_settings.SIGNUP_ALLOWED:
-            raise SignupNotAllowedError()
-
-        return super().create(request, *args, **kwargs)
+    def get_permissions(self) -> Iterable[BasePermission]:
+        if self.action == "create":
+            return (IsUserCreateAllowed(),)
+        return super().get_permissions()
 
     def get_object(self) -> Any:
         return self.request.user
@@ -179,11 +178,13 @@ class UserViewSet(
             created_by=self.request.user if self.request.user.is_authenticated else None
         )
 
-    @action(detail=True, methods=["POST"], serializer_class=ChangePasswordSerializer)
+    @action(
+        detail=True,
+        methods=["POST"],
+        serializer_class=ChangePasswordSerializer,
+        url_path="set-password",
+    )
     def set_password(
         self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
-        serializer = self.get_serializer(self.get_object(), data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return response.Response({})
+        return super().update(request, *args, **kwargs)

@@ -2,7 +2,6 @@ import json
 
 import httpretty
 from django.db import IntegrityError
-from django.urls import reverse
 from django_otp.plugins.otp_email.models import EmailDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from otp_twilio.models import TwilioSMSDevice
@@ -28,7 +27,7 @@ class OtpDeviceViewSetAPITest(APITestCase):
 
         # Make the API request to create a new email Device
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:otp-device-list"),
+            "/api/v1/auth/otp-devices/",
             {
                 "type": "email",
                 "name": self.email,
@@ -51,7 +50,7 @@ class OtpDeviceViewSetAPITest(APITestCase):
 
     def test_create_totp_device(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:otp-device-list"),
+            "/api/v1/auth/otp-devices/",
             {
                 "type": "totp",
                 "name": "totp",
@@ -65,8 +64,8 @@ class OtpDeviceViewSetAPITest(APITestCase):
         self.assertIn("url", response.data["extra_data"])
         self.assertEqual(device.config_url, response.data["extra_data"]["url"])
 
-        # Check we will not return the key again
-        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        # Check we will not return the URL again
+        response = self.client.get("/api/v1/auth/otp-devices/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["type"], "totp")
@@ -81,9 +80,8 @@ class OtpDeviceViewSetAPITest(APITestCase):
         )
         self.assertIsNone(email_device.token)
 
-        send_url = reverse("df_api_drf:v1:auth:otp-list")
         response = self.client.post(
-            f"{send_url}",
+            "/api/v1/auth/otp/",
             {
                 "email": email_device.email,
             },
@@ -92,11 +90,8 @@ class OtpDeviceViewSetAPITest(APITestCase):
         email_device.refresh_from_db()
         self.assertIsNotNone(email_device.token)
 
-        confirm_url = reverse(
-            "df_api_drf:v1:auth:otp-device-confirm", kwargs={"pk": email_device.pk}
-        )
         response = self.client.post(
-            f"{confirm_url}?type=email",
+            f"/api/v1/auth/otp-devices/{email_device.pk}/confirm/?type=email",
             {"otp": "wrong-token"},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -107,7 +102,7 @@ class OtpDeviceViewSetAPITest(APITestCase):
         self.user.refresh_from_db()
         self.assertIsNone(self.user.email)
         response = self.client.post(
-            f"{confirm_url}?type=email",
+            f"/api/v1/auth/otp-devices/{email_device.pk}/confirm/?type=email",
             {"otp": email_device.token},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -123,21 +118,18 @@ class OtpDeviceViewSetAPITest(APITestCase):
             confirmed=True,
         )
 
-        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        response = self.client.get("/api/v1/auth/otp-devices/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["name"], self.email)
         self.assertEqual(response.data["results"][0]["type"], "email")
 
         response = self.client.delete(
-            reverse(
-                "df_api_drf:v1:auth:otp-device-detail", kwargs={"pk": email_device.pk}
-            )
-            + "?type=email"
+            f"/api/v1/auth/otp-devices/{email_device.pk}/?type=email"
         )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        response = self.client.get("/api/v1/auth/otp-devices/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 0)
 
@@ -154,7 +146,7 @@ class OtpDeviceViewSetAPITest(APITestCase):
             user=self.user,
             name="default",
         )
-        response = self.client.get(reverse("df_api_drf:v1:auth:otp-device-list"))
+        response = self.client.get("/api/v1/auth/otp-devices/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 3)
         types = [device["type"] for device in response.data["results"]]
@@ -173,7 +165,7 @@ class UserViewSetAPITest(APITestCase):
 
     def test_create_user_with_email_password(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
             {
                 "email": self.email,
                 "password": self.password,
@@ -200,7 +192,7 @@ class UserViewSetAPITest(APITestCase):
         client.force_authenticate(user=user)
 
         response = client.get(
-            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk})
+            "/api/v1/auth/users/0/",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["email"], self.email)
@@ -215,7 +207,7 @@ class UserViewSetAPITest(APITestCase):
         phone_2 = "+31645427185"
 
         response = client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
             {
                 "phone_number": phone_2,
                 "email": email_2,
@@ -233,7 +225,7 @@ class UserViewSetAPITest(APITestCase):
 
     def test_user_nl_phone_strips_zero(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
             {
                 "phone_number": "+310612345678",
                 "email": "test2@te.st",
@@ -248,7 +240,7 @@ class UserViewSetAPITest(APITestCase):
         client.force_authenticate(user=user)
 
         response = client.patch(
-            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk}),
+            "/api/v1/auth/users/0/",
             {
                 "first_name": "test",
             },
@@ -262,7 +254,7 @@ class UserViewSetAPITest(APITestCase):
         client.force_authenticate(user=user)
 
         response = client.patch(
-            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk}),
+            "/api/v1/auth/users/0/",
             {
                 "phone_number": self.phone_number,
             },
@@ -283,7 +275,7 @@ class UserViewSetAPITest(APITestCase):
         )
 
         response = client.patch(
-            reverse("df_api_drf:v1:auth:user-detail", kwargs={"pk": user.pk}),
+            "/api/v1/auth/users/0/",
             {
                 "phone_number": self.phone_number,
             },
@@ -297,7 +289,7 @@ class UserViewSetAPITest(APITestCase):
         client.force_authenticate(user=user)
 
         response = client.post(
-            reverse("df_api_drf:v1:auth:user-set-password", kwargs={"pk": user.pk}),
+            "/api/v1/auth/users/0/set-password/",
             {
                 "old_password": "wrong",
                 "new_password": "new",
@@ -312,7 +304,7 @@ class UserViewSetAPITest(APITestCase):
         client.force_authenticate(user=user)
 
         response = client.post(
-            reverse("df_api_drf:v1:auth:user-set-password", kwargs={"pk": user.pk}),
+            "/api/v1/auth/users/0/set-password/",
             {
                 "old_password": "testpass",
                 "new_password": "new",
@@ -326,7 +318,7 @@ class UserViewSetAPITest(APITestCase):
             username="testuser", password="testpass", email=self.email
         )
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
             {
                 "email": self.email,
                 "password": "testpass",
@@ -340,7 +332,7 @@ class UserViewSetAPITest(APITestCase):
             username="testuser", password="testpass", phone_number=self.phone_number
         )
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
             {
                 "phone_number": self.phone_number,
                 "password": "testpass",
@@ -372,7 +364,7 @@ class UserViewSetWithUsernameOnlyIdentityFieldAPITest(APITestCase):
 
     def test_user_can_signup_with_the_same_email(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
             {
                 "username": "test1",
                 "email": self.email,
@@ -388,7 +380,7 @@ class UserViewSetWithUsernameOnlyIdentityFieldAPITest(APITestCase):
         self.assertRaises(
             IntegrityError,
             lambda: self.client.post(
-                reverse("df_api_drf:v1:auth:user-list"),
+                "/api/v1/auth/users/",
                 {
                     "username": "test2",
                     "email": self.email,
@@ -399,7 +391,7 @@ class UserViewSetWithUsernameOnlyIdentityFieldAPITest(APITestCase):
 
     def test_user_can_signup_with_the_same_phone_number(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
             {
                 "username": "test1",
                 "phone_number": self.phone_number,
@@ -415,7 +407,7 @@ class UserViewSetWithUsernameOnlyIdentityFieldAPITest(APITestCase):
         self.assertRaises(
             IntegrityError,
             lambda: self.client.post(
-                reverse("df_api_drf:v1:auth:user-list"),
+                "/api/v1/auth/users/",
                 {
                     "username": "test2",
                     "phone_number": self.phone_number,
@@ -432,7 +424,7 @@ class OtpViewSetAPITest(APITestCase):
 
     def test_user_can_request_otp_with_registration(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:otp-list"),
+            "/api/v1/auth/otp/",
             {
                 "email": self.email,
             },
@@ -461,7 +453,7 @@ class OtpViewSetWithDisabledAnonOtpAPITest(APITestCase):
             user=user, name=self.email, confirmed=True, email=self.email
         )
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:otp-list"),
+            "/api/v1/auth/otp/",
             {
                 "email": self.email,
             },
@@ -481,7 +473,7 @@ class OtpViewSetWithDisabledOtpAutoCreateAPITest(APITestCase):
 
     def test_user_cannot_request_otp_without_registration(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:otp-list"),
+            "/api/v1/auth/otp/",
             {
                 "email": self.email,
             },
@@ -505,7 +497,7 @@ class TokenViewSetAPITest(APITestCase):
     def test_obtain_token_by_email_and_otp(self) -> None:
         self.device.generate_challenge()
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:token-list"),
+            "/api/v1/auth/token/",
             {
                 "email": self.user.email,
                 "otp": self.device.token,
@@ -516,7 +508,7 @@ class TokenViewSetAPITest(APITestCase):
 
     def test_obtain_token_by_username_and_password(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:token-list"),
+            "/api/v1/auth/token/",
             {
                 "username": self.user.username,
                 "password": "testpass",
@@ -541,7 +533,7 @@ class TokenViewSet2FAAPITest(APITestCase):
 
     def test_user_with_2fa_cannot_authorize_without_otp(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:token-list"),
+            "/api/v1/auth/token/",
             {
                 "username": self.user.username,
                 "password": "testpass",
@@ -558,7 +550,7 @@ class TokenViewSet2FAAPITest(APITestCase):
     def test_user_with_2fa_can_authorize_with_otp(self) -> None:
         self.device.generate_challenge()
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:token-list"),
+            "/api/v1/auth/token/",
             {
                 "username": self.user.username,
                 "password": "testpass",
@@ -600,7 +592,7 @@ class SocialTokenViewSetAPITest(APITestCase):
         )
 
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:social-list"),
+            "/api/v1/auth/social/",
             {
                 "provider": "google-oauth2",
                 "access_token": "test",
@@ -611,7 +603,7 @@ class SocialTokenViewSetAPITest(APITestCase):
 
     def test_social_login_creates_new_user(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:social-list"),
+            "/api/v1/auth/social/",
             {
                 "provider": "google-oauth2",
                 "access_token": "test",
@@ -634,7 +626,7 @@ class SocialTokenViewSetAPITest(APITestCase):
             is_2fa_enabled=True,
         )
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:social-list"),
+            "/api/v1/auth/social/",
             {
                 "provider": "google-oauth2",
                 "access_token": "test",
@@ -658,7 +650,7 @@ class SocialTokenViewSetAPITest(APITestCase):
         device.generate_challenge()
 
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:social-list"),
+            "/api/v1/auth/social/",
             {
                 "provider": "google-oauth2",
                 "access_token": "test",
@@ -693,7 +685,7 @@ class SocialTokenViewSetWithoutNameAPITest(APITestCase):
 
     def test_social_login_accepts_first_last_names_from_body(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:social-list"),
+            "/api/v1/auth/social/",
             {
                 "provider": "google-oauth2",
                 "access_token": "test",
@@ -721,11 +713,36 @@ class DisabledSignupAPITest(APITestCase):
 
     def test_signup_not_allowed(self) -> None:
         response = self.client.post(
-            reverse("df_api_drf:v1:auth:user-list"),
+            "/api/v1/auth/users/",
+            {
+                "password": "testpass",
+                "email": "test@te.st",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["errors"][0]["code"], "not_authenticated")
+
+
+class DisabledInviteAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="testuser",
+            password="testpass",
+        )
+        self.client.force_authenticate(self.user)
+        api_settings.INVITE_ALLOWED = False
+
+    def tearDown(self) -> None:
+        api_settings.INVITE_ALLOWED = True
+
+    def test_invite_not_allowed(self) -> None:
+        response = self.client.post(
+            "/api/v1/auth/users/",
             {
                 "password": "testpass",
                 "email": "test@te.st",
             },
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data["errors"][0]["code"], "signup_not_allowed")
+        self.assertEqual(response.data["errors"][0]["code"], "permission_denied")
