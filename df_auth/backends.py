@@ -85,8 +85,13 @@ class BaseOTPBackend(ModelBackend):
             },
         )
 
-        device.generate_challenge()
+        self.send_challenge(device, request, **kwargs)
         return device.user
+
+    def send_challenge(
+        self, device: SideChannelDevice, request: HttpRequest, **kwargs: Any
+    ) -> None:
+        device.generate_challenge()
 
     def authenticate(self, request: Optional[HttpRequest], **kwargs: Any) -> Optional[User]:  # type: ignore
         """
