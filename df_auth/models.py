@@ -9,3 +9,7 @@ class User2FA(models.Model):
         related_name="user_2fa",
     )
     is_required = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "User 2FA"
+        verbose_name_plural = "User 2FA"
