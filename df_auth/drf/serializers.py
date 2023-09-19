@@ -382,9 +382,10 @@ class UserIdentitySerializer(serializers.Serializer):
 
     def create(self, validated_data: Any) -> User:
         if not validated_data.get("username") and getattr(User, "username", False):
-            validated_data["username"] = (
-                validated_data["email"] or validated_data["phone_number"]
-            )
+            for field in api_settings.USER_IDENTITY_FIELDS:
+                if validated_data.get(field):
+                    validated_data["username"] = validated_data[field]
+                    break
 
         user = User(**validated_data)
         if validated_data.get("password"):
@@ -392,12 +393,12 @@ class UserIdentitySerializer(serializers.Serializer):
         user.save()
 
         # TODO: create common interface
-        if user.email:  # type: ignore
+        if getattr(User, "email", False) and user.email:  # type: ignore
             EmailDevice.objects.create(
                 user=user, email=user.email, confirmed=False, name=user.email  # type: ignore
             )
 
-        if user.phone_number:  # type: ignore
+        if getattr(User, "phone_number", False) and user.phone_number:  # type: ignore
             TwilioSMSDevice.objects.create(
                 user=user,
                 number=user.phone_number,
