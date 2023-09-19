@@ -326,7 +326,9 @@ class UserIdentitySerializer(serializers.Serializer):
 
         return fields
 
-    def validate_email(self, value: str) -> str:
+    def validate_email(self, value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
         # TODO: check for black list
 
         # If User has no confirmed EmailDevice on update
@@ -341,17 +343,23 @@ class UserIdentitySerializer(serializers.Serializer):
         if (
             self.instance is None
             and "email" in api_settings.USER_IDENTITY_FIELDS
+            and value is not None
             and User.objects.filter(email=value).exists()
         ):
             raise serializers.ValidationError("User with this email already exists.")
 
         return User.objects.normalize_email(value)
 
-    def validate_username(self, value: str) -> str:
+    def validate_username(self, value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
         # TODO: check for black list
         return value
 
-    def validate_phone_number(self, value: str) -> str:
+    def validate_phone_number(self, value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+
         # TODO: check for black list
         if (
             self.instance
@@ -366,6 +374,7 @@ class UserIdentitySerializer(serializers.Serializer):
         if (
             self.instance is None
             and "phone_number" in api_settings.USER_IDENTITY_FIELDS
+            and value is not None
             and User.objects.filter(phone_number=value).exists()
         ):
             raise serializers.ValidationError(
