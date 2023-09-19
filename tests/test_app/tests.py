@@ -1,6 +1,7 @@
 import json
 
 import httpretty
+import pytest
 from django.db import IntegrityError
 from django_otp.plugins.otp_email.models import EmailDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -9,8 +10,11 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from df_auth.exceptions import UserDoesNotExistError
+from df_auth.models import User2FA
 from df_auth.settings import DEFAULTS, api_settings
 from tests.test_app.models import User
+
+pytestmark = pytest.mark.django_db
 
 
 class OtpDeviceViewSetAPITest(APITestCase):
@@ -525,8 +529,8 @@ class TokenViewSet2FAAPITest(APITestCase):
             username="testuser",
             password="testpass",
             email="test@te.st",
-            is_2fa_enabled=True,
         )
+        User2FA.objects.create(user=self.user, is_required=True)
         self.device = EmailDevice.objects.create(
             user=self.user, name=self.user.email, confirmed=True, email=self.user.email
         )
@@ -619,12 +623,12 @@ class SocialTokenViewSetAPITest(APITestCase):
         self.assertEqual(user.last_name, self.last_name)
 
     def test_social_login_fails_if_2fa_enabled(self) -> None:
-        User.objects.create_user(
+        user = User.objects.create_user(
             username="testuser",
             password="testpass",
             email=self.email,
-            is_2fa_enabled=True,
         )
+        User2FA.objects.create(user=user, is_required=True)
         response = self.client.post(
             "/api/v1/auth/social/",
             {
@@ -642,8 +646,8 @@ class SocialTokenViewSetAPITest(APITestCase):
             password="testpass",
             email=self.email,
             phone_number="+31612345678",
-            is_2fa_enabled=True,
         )
+        User2FA.objects.create(user=user, is_required=True)
         device = TwilioSMSDevice.objects.create(
             user=user, name=user.phone_number, confirmed=True, number=user.phone_number
         )
@@ -746,3 +750,39 @@ class DisabledInviteAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.data["errors"][0]["code"], "permission_denied")
+
+
+class User2FAAPITest(APITestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="testuser",
+            password="testpass",
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_user_2fa_retrieve(self) -> None:
+        response = self.client.get(
+            "/api/v1/auth/users/0/two-fa/",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_required"])
+
+    def test_user_2fa_update(self) -> None:
+        response = self.client.patch(
+            "/api/v1/auth/users/0/two-fa/",
+            {
+                "is_required": True,
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["is_required"])
+
+
+def test_create_superuser() -> None:
+    User.objects.create_superuser(
+        username="testuser",
+        password="testpass",
+    )

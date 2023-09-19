@@ -1,6 +1,8 @@
 from typing import Any, Iterable, List, Type
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpRequest, HttpResponse
 from django_otp.models import Device
 from drf_spectacular.types import OpenApiTypes
@@ -16,6 +18,7 @@ from rest_framework_simplejwt.settings import (
 from ..exceptions import (
     DfAuthValidationError,
 )
+from ..models import User2FA
 from ..permissions import IsUnauthenticated, IsUserCreateAllowed
 from ..utils import get_otp_device_models, get_otp_devices
 from .serializers import (
@@ -26,6 +29,7 @@ from .serializers import (
     SocialTokenObtainSerializer,
     TokenObtainSerializer,
     TokenSerializer,
+    User2FASerializer,
     UserIdentitySerializer,
 )
 
@@ -174,9 +178,17 @@ class UserViewSet(
         return self.request.user
 
     def perform_create(self, serializer: UserIdentitySerializer) -> None:
-        serializer.save(
-            created_by=self.request.user if self.request.user.is_authenticated else None
-        )
+        User = get_user_model()
+        try:
+            User._meta.get_field("created_by")
+            kwargs = {
+                "created_by": self.request.user
+                if self.request.user.is_authenticated
+                else None
+            }
+        except FieldDoesNotExist:
+            kwargs = {}
+        serializer.save(**kwargs)
 
     @action(
         detail=True,
@@ -188,3 +200,19 @@ class UserViewSet(
         self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
         return super().update(request, *args, **kwargs)
+
+    @action(
+        detail=True,
+        methods=["GET", "PATCH"],
+        serializer_class=User2FASerializer,
+        url_path="two-fa",
+    )
+    def two_fa(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        instance = User2FA.objects.get_or_create(user=self.get_object())[0]
+        if request.method == "GET":
+            serializer = self.get_serializer(instance)
+        else:
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        return response.Response(serializer.data)

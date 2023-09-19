@@ -19,6 +19,7 @@ from social_django.models import DjangoStorage
 from social_django.utils import load_backend
 
 from ..exceptions import Authentication2FARequiredError
+from ..models import User2FA
 from ..settings import api_settings
 from ..strategy import DRFStrategy
 from ..utils import (
@@ -39,7 +40,7 @@ def build_fields(fields: Dict[str, str], **kwargs: Any) -> Dict[str, serializers
 
 
 def check_user_2fa(user: Optional[AbstractBaseUser], otp: Optional[str]) -> None:
-    if user and getattr(user, "is_2fa_enabled", False):
+    if user and hasattr(user, "user_2fa") and user.user_2fa.is_required:
         devices = [d for d in get_otp_devices(user) if d.confirmed]
 
         if not any(d.verify_token(otp) for d in devices):
@@ -420,3 +421,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         instance.set_password(validated_data["new_password"])
         instance.save()
         return instance
+
+
+class User2FASerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User2FA
+        fields = ["is_required"]
