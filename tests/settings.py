@@ -5,6 +5,7 @@ from df_api_drf.defaults import (
     REST_FRAMEWORK,
     SPECTACULAR_SETTINGS,
 )
+from df_remote_config.defaults import DF_REMOTE_CONFIG_INSTALLED_APPS
 
 from df_auth.defaults import DF_AUTH_INSTALLED_APPS
 
@@ -36,6 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     *DF_API_DRF_INSTALLED_APPS,
+    *DF_REMOTE_CONFIG_INSTALLED_APPS,
     *DF_AUTH_INSTALLED_APPS,
     "tests.test_app.apps.TestAppConfig",
 ]
@@ -123,7 +125,6 @@ REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] += (
     "rest_framework.authentication.SessionAuthentication",
 )
 
-
 SOCIAL_AUTH_PIPELINE = [
     # Get the information we can about the user and return it in a simple
     # format to create the user instance later. On some cases the details are
@@ -157,3 +158,15 @@ SOCIAL_AUTH_PIPELINE = [
     # Update the user record with any changed info from the auth service.
     "social_core.pipeline.user.user_details",
 ]
+
+DF_REMOTE_CONFIG = {
+    "PARTS": {
+        "auth": {
+            "SCHEMA": "df_auth.remote_config.auth_schema",
+            "HANDLER_CLASS": "df_auth.remote_config.AuthHandler",
+        }
+    }
+}
+
+
+SOCIAL_AUTH_FACEBOOK_KEY = "dqdqwqdwdqwqw"
