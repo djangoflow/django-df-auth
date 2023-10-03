@@ -30,7 +30,7 @@ dependencies = [
     "twilio", # should optional
     "social-auth-app-django", # might be optional
     "django-phonenumber-field[phonenumbers]",
-    "django-df-remote-config @ git+https://github.com/djangoflow/django-df-remote-config.git@main",
+    "django-df-remote-config>=0.0.4",
 ]
 
 [project.optional-dependencies]
