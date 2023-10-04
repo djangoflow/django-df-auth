@@ -19,7 +19,7 @@ from social_django.models import DjangoStorage
 from social_django.utils import load_backend
 
 from ..exceptions import Authentication2FARequiredError
-from ..models import User2FA
+from ..models import User2FA, UserRegistration
 from ..settings import api_settings
 from ..strategy import DRFStrategy
 from ..utils import (
@@ -40,7 +40,7 @@ def build_fields(fields: Dict[str, str], **kwargs: Any) -> Dict[str, serializers
 
 
 def check_user_2fa(user: Optional[AbstractBaseUser], otp: Optional[str]) -> None:
-    if user and hasattr(user, "user_2fa") and user.user_2fa.is_required:
+    if user and hasattr(user, "user2fa") and user.user2fa.is_required:
         devices = [d for d in get_otp_devices(user) if d.confirmed]
 
         if not any(d.verify_token(otp) for d in devices):
@@ -400,6 +400,12 @@ class UserIdentitySerializer(serializers.Serializer):
         if validated_data.get("password"):
             user.set_password(validated_data["password"])
         user.save()
+
+        request_user = self.context["request"].user
+        UserRegistration.objects.create(
+            user=user,
+            invited_by=request_user if request_user.is_authenticated else None,
+        )
 
         # TODO: create common interface
         if getattr(User, "email", False) and user.email:  # type: ignore
