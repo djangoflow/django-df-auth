@@ -1,8 +1,6 @@
 from typing import Any, Iterable, List, Type
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpRequest, HttpResponse
 from django_otp.models import Device
 from drf_spectacular.types import OpenApiTypes

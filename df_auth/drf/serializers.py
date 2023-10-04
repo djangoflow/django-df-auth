@@ -404,7 +404,7 @@ class UserIdentitySerializer(serializers.Serializer):
         request_user = self.context["request"].user
         UserRegistration.objects.create(
             user=user,
-            invited_by=request_user if request_user.is_authenticated else None
+            invited_by=request_user if request_user.is_authenticated else None,
         )
 
         # TODO: create common interface

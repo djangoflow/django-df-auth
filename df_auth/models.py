@@ -23,6 +23,9 @@ class UserRegistration(models.Model):
     )
     is_registering = models.BooleanField(default=False)
     invited_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name="invited_users_registration", null=True, blank=True
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="invited_users_registration",
+        null=True,
+        blank=True,
     )
