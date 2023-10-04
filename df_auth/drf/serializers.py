@@ -40,7 +40,7 @@ def build_fields(fields: Dict[str, str], **kwargs: Any) -> Dict[str, serializers
 
 
 def check_user_2fa(user: Optional[AbstractBaseUser], otp: Optional[str]) -> None:
-    if user and hasattr(user, "user_2fa") and user.user_2fa.is_required:
+    if user and hasattr(user, "user2fa") and user.user2fa.is_required:
         devices = [d for d in get_otp_devices(user) if d.confirmed]
 
         if not any(d.verify_token(otp) for d in devices):
