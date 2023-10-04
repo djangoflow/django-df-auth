@@ -221,7 +221,7 @@ class UserViewSetAPITest(APITestCase):
         self.assertEqual(response.data["phone_number"], phone_2)
 
         user_2 = User.objects.get(phone_number=phone_2)
-        self.assertEqual(user_2.created_by, user_1)
+        self.assertEqual(user_2.user_registration.invited_by, user_1)
         phone_device = TwilioSMSDevice.objects.get(user=user_2, name=phone_2)
         self.assertFalse(phone_device.confirmed)
         email_device = EmailDevice.objects.get(user=user_2, name=email_2)

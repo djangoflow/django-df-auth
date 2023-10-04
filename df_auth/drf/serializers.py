@@ -19,7 +19,7 @@ from social_django.models import DjangoStorage
 from social_django.utils import load_backend
 
 from ..exceptions import Authentication2FARequiredError
-from ..models import User2FA
+from ..models import User2FA, UserRegistration
 from ..settings import api_settings
 from ..strategy import DRFStrategy
 from ..utils import (
@@ -400,6 +400,12 @@ class UserIdentitySerializer(serializers.Serializer):
         if validated_data.get("password"):
             user.set_password(validated_data["password"])
         user.save()
+
+        request_user = self.context["request"].user
+        UserRegistration.objects.create(
+            user=user,
+            invited_by=request_user if request_user.is_authenticated else None
+        )
 
         # TODO: create common interface
         if getattr(User, "email", False) and user.email:  # type: ignore

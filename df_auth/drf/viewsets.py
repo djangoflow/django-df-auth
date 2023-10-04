@@ -177,19 +177,6 @@ class UserViewSet(
     def get_object(self) -> Any:
         return self.request.user
 
-    def perform_create(self, serializer: UserIdentitySerializer) -> None:
-        User = get_user_model()
-        try:
-            User._meta.get_field("created_by")
-            kwargs = {
-                "created_by": self.request.user
-                if self.request.user.is_authenticated
-                else None
-            }
-        except FieldDoesNotExist:
-            kwargs = {}
-        serializer.save(**kwargs)
-
     @action(
         detail=True,
         methods=["POST"],

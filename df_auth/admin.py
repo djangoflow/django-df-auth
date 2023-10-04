@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from django_otp.plugins.otp_email.models import EmailDevice
 from otp_twilio.models import TwilioSMSDevice
 
-from df_auth.models import User2FA
+from df_auth.models import User2FA, UserRegistration
 from df_auth.settings import api_settings
 
 
@@ -81,3 +81,8 @@ class User2FAAdmin(admin.ModelAdmin):
         messages.success(request, f"Disabled {queryset.count()} users")
 
     actions = [enable, disable]
+
+
+@admin.register(UserRegistration)
+class UserRegistrationAdmin(admin.ModelAdmin):
+    list_display = ("user", "is_registering", "invited_by")

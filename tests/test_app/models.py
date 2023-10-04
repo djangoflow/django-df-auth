@@ -12,6 +12,4 @@ class User(AbstractUser):
     REQUIRED_FIELDS: List[str] = []
     email = models.EmailField(max_length=255, unique=True, null=True, blank=True)  # type: ignore
     phone_number = models.CharField(max_length=32, unique=True, null=True, blank=True)
-    created_by = models.ForeignKey(
-        "self", on_delete=models.SET_NULL, null=True, blank=True
-    )
+
