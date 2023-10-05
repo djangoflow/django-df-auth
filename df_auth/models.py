@@ -21,7 +21,7 @@ class User2FA(UserOneToOneMixin):
 
 
 class UserRegistration(UserOneToOneMixin):
-    is_registering = models.BooleanField(default=False)
+    is_registering = models.BooleanField(default=True)
     invited_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
