@@ -62,15 +62,17 @@ class EmailDeviceAdmin(admin.ModelAdmin):
     actions = [send_challenge]
 
 
-@admin.register(User2FA)
-class User2FAAdmin(admin.ModelAdmin):
-    list_display = ("user", "is_required")
-    autocomplete_fields = ("user",)
-
+class BaseUserAdmin(admin.ModelAdmin):
     def get_search_fields(self, request: HttpRequest) -> Sequence[str]:
         return ["user__id"] + [
             f"user__{field}" for field in api_settings.USER_IDENTITY_FIELDS
         ]
+
+
+@admin.register(User2FA)
+class User2FAAdmin(BaseUserAdmin):
+    list_display = ("user", "is_required")
+    autocomplete_fields = ("user",)
 
     def enable(self, request: HttpRequest, queryset: QuerySet[User2FA]) -> None:
         queryset.update(is_required=True)
@@ -84,5 +86,6 @@ class User2FAAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserRegistration)
-class UserRegistrationAdmin(admin.ModelAdmin):
+class UserRegistrationAdmin(BaseUserAdmin):
     list_display = ("user", "is_registering", "invited_by")
+    autocomplete_fields = ("user", "invited_by")
