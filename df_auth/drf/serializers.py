@@ -148,6 +148,12 @@ class AuthBackendSerializer(serializers.Serializer):
 class OTPObtainSerializer(AuthBackendSerializer):
     backend_method_name = "generate_challenge"
 
+    def get_fields(self) -> Dict[str, serializers.Field]:
+        return {
+            **super().get_fields(),
+            "redirect_path": serializers.CharField(required=False),
+        }
+
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """
         - check user auth:
