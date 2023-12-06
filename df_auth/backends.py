@@ -9,6 +9,7 @@ from otp_twilio.models import TwilioSMSDevice
 
 from .exceptions import (
     UserDoesNotExistError,
+    UserInactiveError,
     WrongOTPError,
 )
 from .settings import api_settings
@@ -58,7 +59,7 @@ class BaseOTPBackend(ModelBackend):
 
         if not user:
             user = User.objects.filter(
-                **{self.identity_field: kwargs.get(self.identity_field)}, is_active=True
+                **{self.identity_field: kwargs.get(self.identity_field)}
             ).first()
             if not user:
                 if api_settings.OTP_AUTO_CREATE_ACCOUNT and api_settings.SIGNUP_ALLOWED:
@@ -75,6 +76,8 @@ class BaseOTPBackend(ModelBackend):
                     )
                 else:
                     raise UserDoesNotExistError()
+        if not user.is_active:
+            raise UserInactiveError()
 
         device, _ = self.DeviceModel.objects.get_or_create(
             user=user,

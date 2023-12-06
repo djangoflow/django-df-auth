@@ -781,6 +781,33 @@ class User2FAAPITest(APITestCase):
         self.assertTrue(response.data["is_required"])
 
 
+class InactiveUserAPITest(APITestCase):
+    def setUp(self) -> None:
+        # Create a test user and set up any other objects you need
+        self.email = "test@te.st"
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass", is_active=False, email=self.email
+        )
+        self.client = APIClient()
+
+    def test_inactive_user_request_otp(self) -> None:
+        email_device = EmailDevice.objects.create(
+            user=self.user,
+            name=self.email,
+            email=self.email,
+            confirmed=True,
+        )
+
+        response = self.client.post(
+            "/api/v1/auth/otp/",
+            {
+                "email": email_device.email,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["errors"][0]["code"], "user_inactive")
+
+
 def test_create_superuser() -> None:
     User.objects.create_superuser(
         username="testuser",

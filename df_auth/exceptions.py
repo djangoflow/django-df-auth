@@ -43,6 +43,15 @@ class UserDoesNotExistError(DfAuthValidationError):
     default_code = "user_does_not_exist"
 
 
+class UserInactiveError(DfAuthValidationError):
+    """
+    This exception is used when user already exists
+    """
+
+    default_detail = _("Your account was deactivated. Please contact support")
+    default_code = "user_inactive"
+
+
 class DeviceTakenError(DfAuthValidationError):
     """
     This exception is used when device is already registered
