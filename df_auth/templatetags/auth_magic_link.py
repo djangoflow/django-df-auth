@@ -14,4 +14,7 @@ def auth_magic_link(context: Dict) -> str:
     token = base64.urlsafe_b64encode(
         bytes(f"{context['username']}/{context['token']}", "utf-8")
     ).decode("utf-8")
-    return f"{context['base_url']}{token}"
+    url = f"{context['base_url']}{token}"
+    if context.get("redirect_path"):
+        url += f"?redirect_path={context['redirect_path']}"
+    return url

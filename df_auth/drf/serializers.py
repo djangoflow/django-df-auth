@@ -151,7 +151,7 @@ class OTPObtainSerializer(AuthBackendSerializer):
     def get_fields(self) -> Dict[str, serializers.Field]:
         return {
             **super().get_fields(),
-            "redirect_path": serializers.CharField(required=False),
+            "redirect_path": serializers.CharField(required=False, write_only=True),
         }
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
