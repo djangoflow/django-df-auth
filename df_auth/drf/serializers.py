@@ -276,9 +276,7 @@ class OTPDeviceSerializer(serializers.Serializer):
         DeviceModel = get_otp_device_models()[device_type]
 
         data = {
-            **validated_data,
             "user": self.context["request"].user,
-            "confirmed": False,
         }
 
         # TODO: create common interface to
@@ -290,7 +288,14 @@ class OTPDeviceSerializer(serializers.Serializer):
         if device_type == "email":
             data["email"] = validated_data["name"]
 
-        return DeviceModel.objects.create(**data)
+        device, _ = DeviceModel.objects.get_or_create(
+            **data,
+            defaults={
+                "confirmed": False,
+                **validated_data,
+            },
+        )
+        return device
 
 
 class OTPDeviceConfirmSerializer(serializers.Serializer):
