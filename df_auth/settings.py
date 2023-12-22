@@ -32,6 +32,7 @@ DEFAULTS = {
     "OTP_SEND_UNAUTHORIZED_USER": True,
     "SIGNUP_ALLOWED": True,
     "INVITE_ALLOWED": True,
+    "SITE_LOGIN_URL": "/login/",
 }
 
 api_settings = APISettings(getattr(settings, "DF_AUTH", None), DEFAULTS)

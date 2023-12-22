@@ -1,5 +1,6 @@
 from typing import Any, Optional, Type
 
+from df_api_drf.resolvers import site_url
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.http import HttpRequest
@@ -126,6 +127,18 @@ class EmailOTPBackend(BaseOTPBackend):
     identity_field = "email"
     device_identity_field = "email"
     DeviceModel = EmailDevice
+
+    def send_challenge(
+        self, device: EmailDevice, request: HttpRequest, **kwargs: Any
+    ) -> None:
+        device.generate_challenge(
+            {
+                "username": device.email,
+                "base_url": site_url(request=request, user=device.user)
+                + api_settings.SITE_LOGIN_URL,
+                "redirect_path": kwargs.get("redirect_path", ""),
+            }
+        )
 
 
 class TwilioSMSOTPBackend(BaseOTPBackend):
