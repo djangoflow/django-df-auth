@@ -1,6 +1,6 @@
 from typing import Any, Optional, Type
 
-from df_api_drf.resolvers import site_url
+from df_api_drf.resolvers import client_url
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.http import HttpRequest
@@ -134,7 +134,7 @@ class EmailOTPBackend(BaseOTPBackend):
         device.generate_challenge(
             {
                 "username": device.email,
-                "base_url": site_url(request=request, user=device.user)
+                "base_url": client_url(request=request, user=device.user)
                 + api_settings.SITE_LOGIN_URL,
                 "redirect_path": kwargs.get("redirect_path", ""),
             }

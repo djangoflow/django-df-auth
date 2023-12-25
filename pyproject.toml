@@ -1,6 +1,6 @@
 [project]
 name = "django-df-auth"
-version = "1.0.5"
+version = "1.0.6"
 description = "Opinionated Django REST auth endpoints for JWT authentication and social accounts."
 readme = "README.md"
 authors = [{name = "Apexive OSS", email = "open-source@apexive.com"}]
@@ -31,11 +31,11 @@ dependencies = [
     "social-auth-app-django", # might be optional
     "django-phonenumber-field[phonenumbers]",
     "django-df-remote-config>=0.0.5",
+    "django-df-api-drf>=1.0.4",
 ]
 
 [project.optional-dependencies]
 test = [
-    "django-df-api-drf>=1.0.3",
     "pytest",
     "pytest-django",
     "django-stubs[compatible-mypy]",
