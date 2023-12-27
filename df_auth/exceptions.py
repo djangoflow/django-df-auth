@@ -2,6 +2,7 @@ from df_api_drf.exceptions import ExtraDataAPIException
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.exceptions import (
+    AuthenticationFailed,
     PermissionDenied,
     ValidationError,
 )
@@ -34,12 +35,11 @@ class UserAlreadyExistError(DfAuthValidationError):
     default_code = "user_already_exists"
 
 
-class UserDoesNotExistError(DfAuthValidationError):
+class UserDoesNotExistError(AuthenticationFailed):
     """
     This exception is used when user already exists
     """
 
-    status_code = status.HTTP_401_UNAUTHORIZED
     default_detail = _("User with this identity does not exist, try signup instead")
     default_code = "user_does_not_exist"
 
