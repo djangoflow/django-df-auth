@@ -39,6 +39,7 @@ class UserDoesNotExistError(DfAuthValidationError):
     This exception is used when user already exists
     """
 
+    status_code = status.HTTP_401_UNAUTHORIZED
     default_detail = _("User with this identity does not exist, try signup instead")
     default_code = "user_does_not_exist"
 
