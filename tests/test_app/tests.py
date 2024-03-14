@@ -482,7 +482,7 @@ class OtpViewSetWithDisabledOtpAutoCreateAPITest(APITestCase):
                 "email": self.email,
             },
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(
             response.data["errors"][0]["code"], UserDoesNotExistError.default_code
         )
