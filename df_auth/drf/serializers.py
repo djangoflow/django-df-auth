@@ -327,11 +327,13 @@ class UserIdentitySerializer(serializers.Serializer):
             {
                 **api_settings.USER_OPTIONAL_FIELDS,
                 **api_settings.USER_IDENTITY_FIELDS,
+                "id": "rest_framework.serializers.CharField",
             },
             required=False,
             allow_blank=True,
         )
 
+        fields["id"].read_only = True
         if "password" in fields:
             fields["password"].write_only = True
 
