@@ -75,6 +75,7 @@ class BaseOTPBackend(ModelBackend):
                             ]
                         }
                     )
+                    kwargs["is_new_user"] = True
                 else:
                     raise UserDoesNotExistError()
         if not user.is_active:
