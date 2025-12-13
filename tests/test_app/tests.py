@@ -1023,3 +1023,215 @@ class DeferredIdentityUpdateAPITest(APITestCase):
         device2 = EmailDevice.objects.get(user=user2)
         self.assertEqual(device1.email, self.email)
         self.assertEqual(device2.email, self.email)
+
+
+class AutoSendIdentityVerificationOTPAPITest(APITestCase):
+    """Test AUTO_SEND_IDENTITY_VERIFICATION_OTP setting that auto-sends OTPs on registration"""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        self.phone_number = "+31612345678"
+        self.password = "testpass"
+        api_settings.AUTO_SEND_IDENTITY_VERIFICATION_OTP = True
+
+    def tearDown(self) -> None:
+        api_settings.AUTO_SEND_IDENTITY_VERIFICATION_OTP = DEFAULTS[
+            "AUTO_SEND_IDENTITY_VERIFICATION_OTP"
+        ]
+
+    def test_otp_sent_to_email_on_registration(self) -> None:
+        """OTP should be automatically sent to email when user registers"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(email=self.email)
+        device = EmailDevice.objects.get(user=user, email=self.email)
+
+        # Device should be created but not confirmed
+        self.assertFalse(device.confirmed)
+        # OTP token should have been generated
+        self.assertIsNotNone(device.token)
+
+    def test_otp_sent_to_phone_on_registration(self) -> None:
+        """OTP should be automatically sent to phone when user registers"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "phone_number": self.phone_number,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(phone_number=self.phone_number)
+        device = TwilioSMSDevice.objects.get(user=user, number=self.phone_number)
+
+        # Device should be created but not confirmed
+        self.assertFalse(device.confirmed)
+        # OTP token should have been generated
+        self.assertIsNotNone(device.token)
+
+    def test_otp_sent_to_both_email_and_phone(self) -> None:
+        """OTPs should be sent to both email and phone when both provided"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "email": self.email,
+                "phone_number": self.phone_number,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(email=self.email)
+
+        email_device = EmailDevice.objects.get(user=user, email=self.email)
+        phone_device = TwilioSMSDevice.objects.get(user=user, number=self.phone_number)
+
+        # Both devices should have OTP tokens
+        self.assertIsNotNone(email_device.token)
+        self.assertIsNotNone(phone_device.token)
+        self.assertFalse(email_device.confirmed)
+        self.assertFalse(phone_device.confirmed)
+
+    def test_user_can_confirm_with_auto_sent_otp(self) -> None:
+        """User should be able to confirm their email with the auto-sent OTP"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(email=self.email)
+        device = EmailDevice.objects.get(user=user, email=self.email)
+
+        # OTP was auto-sent
+        self.assertIsNotNone(device.token)
+        otp_token = device.token
+
+        # User authenticates and confirms device
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            f"/api/v1/auth/otp-devices/{device.pk}/confirm/?type=email",
+            {"otp": otp_token},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        device.refresh_from_db()
+        self.assertTrue(device.confirmed)
+
+    def test_no_otp_sent_when_setting_disabled(self) -> None:
+        """OTP should NOT be sent when AUTO_SEND_IDENTITY_VERIFICATION_OTP is False"""
+        api_settings.AUTO_SEND_IDENTITY_VERIFICATION_OTP = False
+
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(email=self.email)
+        device = EmailDevice.objects.get(user=user, email=self.email)
+
+        # Device created but no OTP sent
+        self.assertFalse(device.confirmed)
+        self.assertIsNone(device.token)
+
+
+class AutoSendWithDeferredIdentityAPITest(APITestCase):
+    """Test AUTO_SEND_IDENTITY_VERIFICATION_OTP with DEFER_IDENTITY_UPDATE enabled"""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        self.phone_number = "+31612345678"
+        self.password = "testpass"
+
+        # Configure username-only identity with both features enabled
+        api_settings.USER_IDENTITY_FIELDS = {
+            "username": "rest_framework.serializers.CharField",
+        }
+        api_settings.USER_OPTIONAL_FIELDS = {
+            "email": "rest_framework.serializers.CharField",
+            "phone_number": "phonenumber_field.serializerfields.PhoneNumberField",
+            "password": "rest_framework.serializers.CharField",
+        }
+        api_settings.DEFER_IDENTITY_UPDATE = True
+        api_settings.AUTO_SEND_IDENTITY_VERIFICATION_OTP = True
+        api_settings.OTP_IDENTITY_UPDATE_FIELD = True
+
+    def tearDown(self) -> None:
+        api_settings.USER_IDENTITY_FIELDS = DEFAULTS["USER_IDENTITY_FIELDS"]
+        api_settings.USER_OPTIONAL_FIELDS = DEFAULTS["USER_OPTIONAL_FIELDS"]
+        api_settings.DEFER_IDENTITY_UPDATE = DEFAULTS["DEFER_IDENTITY_UPDATE"]
+        api_settings.AUTO_SEND_IDENTITY_VERIFICATION_OTP = DEFAULTS[
+            "AUTO_SEND_IDENTITY_VERIFICATION_OTP"
+        ]
+
+    def test_deferred_email_receives_auto_otp(self) -> None:
+        """Deferred email should still receive auto-sent OTP"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(username="john")
+        self.assertFalse(user.email)  # Email is deferred (not on user model)
+
+        device = EmailDevice.objects.get(user=user)
+        self.assertEqual(device.email, self.email)
+        self.assertFalse(device.confirmed)
+        # OTP should have been auto-sent
+        self.assertIsNotNone(device.token)
+
+    def test_confirm_deferred_email_updates_user(self) -> None:
+        """Confirming deferred email should update user's email field"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(username="john")
+        device = EmailDevice.objects.get(user=user)
+        otp_token = device.token
+
+        # Confirm device with auto-sent OTP
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            f"/api/v1/auth/otp-devices/{device.pk}/confirm/?type=email",
+            {"otp": otp_token},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # User's email should now be updated from the confirmed device
+        user.refresh_from_db()
+        self.assertEqual(user.email, self.email)
+        device.refresh_from_db()
+        self.assertTrue(device.confirmed)

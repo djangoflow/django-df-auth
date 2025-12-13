@@ -432,8 +432,9 @@ class UserIdentitySerializer(serializers.Serializer):
 
         # Create devices with deferred fields or from user fields
         email_for_device = deferred_fields.get("email") or (user.email if getattr(User, "email", False) else None)  # type: ignore
+        email_device = None
         if email_for_device:
-            EmailDevice.objects.create(
+            email_device = EmailDevice.objects.create(
                 user=user,
                 email=email_for_device,
                 confirmed=False,
@@ -441,13 +442,22 @@ class UserIdentitySerializer(serializers.Serializer):
             )
 
         phone_for_device = deferred_fields.get("phone_number") or (user.phone_number if getattr(User, "phone_number", False) else None)  # type: ignore
+        phone_device = None
         if phone_for_device:
-            TwilioSMSDevice.objects.create(
+            phone_device = TwilioSMSDevice.objects.create(
                 user=user,
                 number=phone_for_device,
                 confirmed=False,
                 name=phone_for_device,
             )
+
+        # Auto-send identity verification OTPs if enabled
+        if api_settings.AUTO_SEND_IDENTITY_VERIFICATION_OTP:
+            request = self.context.get("request")
+            if email_device and request:
+                email_device.generate_challenge()
+            if phone_device and request:
+                phone_device.generate_challenge()
 
         return user
 

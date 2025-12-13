@@ -140,6 +140,49 @@ DF_AUTH = {
 - Prevents spam registrations with disposable emails
 - Username remains the unique identity field
 
+#### Auto-Send Identity Verification OTP
+
+Automatically send verification OTPs to email/phone when users register:
+
+```python
+DF_AUTH = {
+    'AUTO_SEND_IDENTITY_VERIFICATION_OTP': True,  # Auto-send OTPs on signup
+}
+```
+
+**Flow:**
+1. User registers: `POST /auth/users/` with `{ email: "john@example.com", password: "..." }`
+2. User created with email/phone ✅
+3. EmailDevice/TwilioSMSDevice created with `confirmed=False` ✅
+4. **OTP automatically sent to email/phone** ✅
+5. User confirms via `/auth/otp-devices/{id}/confirm/` with received OTP ✅
+6. Device marked `confirmed=True` ✅
+
+**Combine with Deferred Identity:**
+
+```python
+DF_AUTH = {
+    'USER_IDENTITY_FIELDS': {'username': '...'},
+    'USER_OPTIONAL_FIELDS': {'email': '...', 'phone_number': '...'},
+    'DEFER_IDENTITY_UPDATE': True,                      # Don't save until confirmed
+    'AUTO_SEND_IDENTITY_VERIFICATION_OTP': True,        # Auto-send OTP
+    'OTP_IDENTITY_UPDATE_FIELD': True,                  # Update on confirmation
+}
+```
+
+**Combined Flow:**
+1. User registers with username + email
+2. User created: `username="john"`, `email=""` (deferred)
+3. Device created with email, **OTP automatically sent** 📧
+4. User confirms with received OTP
+5. User's email updated to confirmed email ✅
+
+**Benefits:**
+- Seamless onboarding - users receive OTP immediately
+- No need to manually request OTP via `/auth/otp/` endpoint
+- Works with both standard and deferred identity flows
+- Ensures email/phone ownership from registration
+
 #### Invite-Only Registration
 
 Disable public signups and require authenticated users to invite:

@@ -131,6 +131,7 @@ Settings are managed through `DF_AUTH` dict in Django settings (see `df_auth/set
 - `OTP_SEND_UNAUTHORIZED_USER` - Allow OTP for non-logged-in users (default: True)
 - `OTP_IDENTITY_UPDATE_FIELD` - Update user identity when OTP device confirmed (default: True)
 - `DEFER_IDENTITY_UPDATE` - Defer email/phone assignment until device confirmed (default: False)
+- `AUTO_SEND_IDENTITY_VERIFICATION_OTP` - Auto-send OTP on registration (default: False)
 
 **Feature Flags**:
 - `SIGNUP_ALLOWED` - Enable public registration (default: True)
@@ -254,6 +255,59 @@ DF_AUTH = {
     'DEFER_IDENTITY_UPDATE': True,                # Don't save email until confirmed
     'OTP_IDENTITY_UPDATE_FIELD': True,            # Update from confirmed device
 }
+```
+
+### Auto-Send Identity Verification OTP Pattern
+
+When `AUTO_SEND_IDENTITY_VERIFICATION_OTP=True`, OTPs are automatically sent during registration:
+
+**Implementation** (`df_auth/drf/serializers.py:454-460`):
+1. `UserIdentitySerializer.create()` creates user and devices as normal
+2. After device creation, checks if `AUTO_SEND_IDENTITY_VERIFICATION_OTP=True`
+3. If enabled, calls `device.generate_challenge()` for each created device
+4. Email/SMS sent immediately with verification OTP
+
+**Use Cases**:
+- **Immediate verification**: Users receive OTP right after registration
+- **Seamless onboarding**: No need for separate OTP request step
+- **Combines with DEFER_IDENTITY_UPDATE**: Auto-send OTP for deferred fields
+
+**Example Flow**:
+```python
+# Configuration
+DF_AUTH = {
+    'AUTO_SEND_IDENTITY_VERIFICATION_OTP': True,
+}
+
+# User registers
+POST /auth/users/ { email: "john@example.com", password: "..." }
+
+# Behind the scenes:
+# 1. User created
+# 2. EmailDevice created (confirmed=False)
+# 3. device.generate_challenge() called automatically
+# 4. Email sent with OTP token
+
+# User confirms
+POST /auth/otp-devices/{id}/confirm/ { otp: "123456" }
+# Device marked confirmed=True
+```
+
+**Combined with Deferred Identity**:
+```python
+DF_AUTH = {
+    'USER_IDENTITY_FIELDS': {'username': '...'},
+    'DEFER_IDENTITY_UPDATE': True,              # Email not on user model
+    'AUTO_SEND_IDENTITY_VERIFICATION_OTP': True, # But OTP still auto-sent
+    'OTP_IDENTITY_UPDATE_FIELD': True,           # Update on confirmation
+}
+
+# Flow:
+# 1. User registers: username="john", email in request
+# 2. User created: email="" (deferred)
+# 3. Device created with email, OTP auto-sent
+# 4. User confirms OTP
+# 5. User's email field updated from device
 ```
 
 ### Validation-Only ViewSets
