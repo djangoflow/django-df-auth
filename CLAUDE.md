@@ -130,6 +130,7 @@ Settings are managed through `DF_AUTH` dict in Django settings (see `df_auth/set
 - `OTP_AUTO_CREATE_ACCOUNT` - Auto-create user on OTP request (default: True)
 - `OTP_SEND_UNAUTHORIZED_USER` - Allow OTP for non-logged-in users (default: True)
 - `OTP_IDENTITY_UPDATE_FIELD` - Update user identity when OTP device confirmed (default: True)
+- `DEFER_IDENTITY_UPDATE` - Defer email/phone assignment until device confirmed (default: False)
 
 **Feature Flags**:
 - `SIGNUP_ALLOWED` - Enable public registration (default: True)
@@ -227,6 +228,33 @@ OTP backends follow consistent pattern:
 2. Device's `generate_challenge()` - Generate token, send via channel (email/SMS)
 3. `authenticate()` - Verify token against device
 4. `update_user_identity_field()` - Sync confirmed device identity to user model
+
+### Deferred Identity Update Pattern
+
+When `DEFER_IDENTITY_UPDATE=True`, email/phone fields are deferred until device confirmation:
+
+**Implementation** (`df_auth/drf/serializers.py:405-452`):
+1. `UserIdentitySerializer.create()` checks if field is NOT in `USER_IDENTITY_FIELDS`
+2. If deferred, field is popped from `validated_data` and stored separately
+3. User created without email/phone fields (they remain blank/null)
+4. OTP device created with the deferred email/phone value
+5. When device confirmed, `OTPDeviceConfirmSerializer.update()` (line 313-319) updates user fields
+
+**Use Case**: Username-only identity with email verification
+- User registers with username (unique) + email (not unique)
+- Multiple users can register with same unconfirmed email
+- Only when email is verified via OTP is it assigned to user
+- Prevents spam registrations and ensures email ownership
+
+**Configuration**:
+```python
+DF_AUTH = {
+    'USER_IDENTITY_FIELDS': {'username': '...'},  # Only username is unique
+    'USER_OPTIONAL_FIELDS': {'email': '...'},     # Email is optional
+    'DEFER_IDENTITY_UPDATE': True,                # Don't save email until confirmed
+    'OTP_IDENTITY_UPDATE_FIELD': True,            # Update from confirmed device
+}
+```
 
 ### Validation-Only ViewSets
 

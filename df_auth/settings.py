@@ -23,6 +23,7 @@ DEFAULTS = {
     },
     "TEST_USER_EMAIL": None,
     "OTP_IDENTITY_UPDATE_FIELD": True,
+    "DEFER_IDENTITY_UPDATE": False,
     "OTP_DEVICE_MODELS": {
         "email": "django_otp.plugins.otp_email.models.EmailDevice",
         "totp": "django_otp.plugins.otp_totp.models.TOTPDevice",

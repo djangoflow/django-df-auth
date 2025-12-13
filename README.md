@@ -104,6 +104,42 @@ DF_AUTH = {
 
 This ensures users must complete the full registration flow before their identity is verified.
 
+#### Deferred Identity Assignment (Username-only with Email Confirmation)
+
+To allow users to register with a username but defer email/phone assignment until OTP is confirmed:
+
+```python
+DF_AUTH = {
+    'USER_IDENTITY_FIELDS': {
+        'username': 'rest_framework.serializers.CharField',
+    },
+    'USER_OPTIONAL_FIELDS': {
+        'email': 'rest_framework.serializers.CharField',
+        'phone_number': 'phonenumber_field.serializerfields.PhoneNumberField',
+        'password': 'rest_framework.serializers.CharField',
+    },
+    'DEFER_IDENTITY_UPDATE': True,  # Defer email/phone until device confirmed
+    'OTP_IDENTITY_UPDATE_FIELD': True,  # Update user from confirmed device
+}
+```
+
+**Flow:**
+1. User registers: `POST /auth/users/` with `{ username: "john", email: "john@example.com", password: "..." }`
+2. User created with `username="john"`, `email=""` (blank!) ✅
+3. EmailDevice created with `email="john@example.com"`, `confirmed=False` ✅
+4. User requests OTP: `POST /auth/otp/` with `{ email: "john@example.com" }`
+5. OTP sent to john@example.com ✅
+6. User confirms: `POST /auth/otp-devices/{id}/confirm/` with `{ otp: "123456" }`
+7. Device marked `confirmed=True` ✅
+8. User's `email` field NOW updated to "john@example.com" ✅
+
+**Benefits:**
+- Email/phone not saved to user model until verified
+- Multiple users can register with the same unconfirmed email (no uniqueness constraint)
+- Only confirmed email/phone is assigned to the user
+- Prevents spam registrations with disposable emails
+- Username remains the unique identity field
+
 #### Invite-Only Registration
 
 Disable public signups and require authenticated users to invite:

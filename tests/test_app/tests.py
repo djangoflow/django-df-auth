@@ -813,3 +813,213 @@ def test_create_superuser() -> None:
         username="testuser",
         password="testpass",
     )
+
+
+class DeferredIdentityUpdateAPITest(APITestCase):
+    """Test DEFER_IDENTITY_UPDATE setting that defers email/phone assignment until OTP confirmation"""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.email = "test@te.st"
+        self.phone_number = "+31612345678"
+        self.password = "testpass"
+        # Configure username-only identity with deferred updates
+        api_settings.USER_IDENTITY_FIELDS = {
+            "username": "rest_framework.serializers.CharField",
+        }
+        api_settings.USER_OPTIONAL_FIELDS = {
+            "first_name": "rest_framework.serializers.CharField",
+            "last_name": "rest_framework.serializers.CharField",
+            "password": "rest_framework.serializers.CharField",
+            "email": "rest_framework.serializers.CharField",
+            "phone_number": "phonenumber_field.serializerfields.PhoneNumberField",
+        }
+        api_settings.DEFER_IDENTITY_UPDATE = True
+        api_settings.OTP_IDENTITY_UPDATE_FIELD = True
+
+    def tearDown(self) -> None:
+        api_settings.USER_IDENTITY_FIELDS = DEFAULTS["USER_IDENTITY_FIELDS"]
+        api_settings.USER_OPTIONAL_FIELDS = DEFAULTS["USER_OPTIONAL_FIELDS"]
+        api_settings.DEFER_IDENTITY_UPDATE = DEFAULTS["DEFER_IDENTITY_UPDATE"]
+
+    def test_user_created_without_email_when_deferred(self) -> None:
+        """Email should NOT be saved to user model during registration"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["username"], "john")
+        # Email should NOT be in the response or user model
+        self.assertIsNone(response.data.get("email"))
+
+        user = User.objects.get(username="john")
+        self.assertFalse(user.email)  # Email is None or blank
+
+    def test_email_device_created_with_deferred_email(self) -> None:
+        """EmailDevice should be created with the email even though user.email is blank"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(username="john")
+        self.assertFalse(user.email)  # User email is None or blank
+
+        # But device should exist with the email
+        device = EmailDevice.objects.get(user=user)
+        self.assertEqual(device.email, self.email)
+        self.assertEqual(device.name, self.email)
+        self.assertFalse(device.confirmed)
+
+    def test_email_updated_after_otp_confirmation(self) -> None:
+        """User's email should be updated from device when OTP is confirmed"""
+        # Create user with deferred email
+        self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+
+        user = User.objects.get(username="john")
+        self.assertFalse(user.email)  # Email is None or blank initially
+
+        device = EmailDevice.objects.get(user=user)
+        self.assertFalse(device.confirmed)
+
+        # Authenticate and confirm device
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        # Generate OTP token directly (simulating email being sent)
+        device.generate_challenge()
+        device.refresh_from_db()
+        self.assertIsNotNone(device.token)
+
+        # Confirm device with OTP
+        response = client.post(
+            f"/api/v1/auth/otp-devices/{device.pk}/confirm/?type=email",
+            {"otp": device.token},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Now user's email should be updated!
+        user.refresh_from_db()
+        self.assertEqual(user.email, self.email)
+        device.refresh_from_db()
+        self.assertTrue(device.confirmed)
+
+    def test_phone_number_deferred_and_updated(self) -> None:
+        """Phone number should be deferred and updated on confirmation"""
+        # Create user with deferred phone
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "phone_number": self.phone_number,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(username="john")
+        self.assertIsNone(user.phone_number)  # Phone is None!
+
+        # Device should exist with phone number
+        device = TwilioSMSDevice.objects.get(user=user)
+        self.assertEqual(str(device.number), self.phone_number)
+        self.assertFalse(device.confirmed)
+
+        # Authenticate and confirm device
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        # Generate OTP token directly (simulating SMS being sent)
+        device.generate_challenge()
+        device.refresh_from_db()
+        self.assertIsNotNone(device.token)
+
+        # Confirm device
+        response = client.post(
+            f"/api/v1/auth/otp-devices/{device.pk}/confirm/?type=sms",
+            {"otp": device.token},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Phone should now be updated!
+        user.refresh_from_db()
+        self.assertEqual(str(user.phone_number), self.phone_number)
+
+    def test_both_email_and_phone_deferred(self) -> None:
+        """Both email and phone should be deferred when provided together"""
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "email": self.email,
+                "phone_number": self.phone_number,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(username="john")
+        self.assertFalse(user.email)  # Email is None or blank
+        self.assertIsNone(user.phone_number)
+
+        # Both devices should exist
+        email_device = EmailDevice.objects.get(user=user)
+        self.assertEqual(email_device.email, self.email)
+        self.assertFalse(email_device.confirmed)
+
+        phone_device = TwilioSMSDevice.objects.get(user=user)
+        self.assertEqual(str(phone_device.number), self.phone_number)
+        self.assertFalse(phone_device.confirmed)
+
+    def test_multiple_users_can_have_same_unconfirmed_email(self) -> None:
+        """Multiple users should be able to register with same email when it's not an identity field"""
+        # User 1
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "john",
+                "email": self.email,
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # User 2 with SAME email - should succeed!
+        response = self.client.post(
+            "/api/v1/auth/users/",
+            {
+                "username": "jane",
+                "email": self.email,  # Same email!
+                "password": self.password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Both users should exist with blank emails
+        user1 = User.objects.get(username="john")
+        user2 = User.objects.get(username="jane")
+        self.assertFalse(user1.email)  # Email is None or blank
+        self.assertFalse(user2.email)  # Email is None or blank
+
+        # Both should have unconfirmed devices with same email
+        device1 = EmailDevice.objects.get(user=user1)
+        device2 = EmailDevice.objects.get(user=user2)
+        self.assertEqual(device1.email, self.email)
+        self.assertEqual(device2.email, self.email)

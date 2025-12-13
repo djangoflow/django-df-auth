@@ -403,6 +403,16 @@ class UserIdentitySerializer(serializers.Serializer):
         return instance
 
     def create(self, validated_data: Any) -> User:
+        # Extract email/phone for device creation if DEFER_IDENTITY_UPDATE is enabled
+        # and these fields are not identity fields
+        deferred_fields = {}
+
+        if api_settings.DEFER_IDENTITY_UPDATE:
+            if "email" not in api_settings.USER_IDENTITY_FIELDS and "email" in validated_data:
+                deferred_fields["email"] = validated_data.pop("email")
+            if "phone_number" not in api_settings.USER_IDENTITY_FIELDS and "phone_number" in validated_data:
+                deferred_fields["phone_number"] = validated_data.pop("phone_number")
+
         if not validated_data.get("username") and getattr(User, "username", False):
             for field in api_settings.USER_IDENTITY_FIELDS:
                 if validated_data.get(field):
@@ -420,18 +430,23 @@ class UserIdentitySerializer(serializers.Serializer):
             invited_by=request_user if request_user.is_authenticated else None,
         )
 
-        # TODO: create common interface
-        if getattr(User, "email", False) and user.email:  # type: ignore
+        # Create devices with deferred fields or from user fields
+        email_for_device = deferred_fields.get("email") or (user.email if getattr(User, "email", False) else None)  # type: ignore
+        if email_for_device:
             EmailDevice.objects.create(
-                user=user, email=user.email, confirmed=False, name=user.email  # type: ignore
+                user=user,
+                email=email_for_device,
+                confirmed=False,
+                name=email_for_device
             )
 
-        if getattr(User, "phone_number", False) and user.phone_number:  # type: ignore
+        phone_for_device = deferred_fields.get("phone_number") or (user.phone_number if getattr(User, "phone_number", False) else None)  # type: ignore
+        if phone_for_device:
             TwilioSMSDevice.objects.create(
                 user=user,
-                number=user.phone_number,
+                number=phone_for_device,
                 confirmed=False,
-                name=user.phone_number,
+                name=phone_for_device,
             )
 
         return user
